@@ -8,7 +8,7 @@ Java 17, Spring Boot 3.2, JDBC + H2 (embedded, file-backed), JWT auth, Micromete
 ## Run
 
 ```bash
-make build && make run              # http://localhost:8080
+./run.sh                          # builds if needed, http://localhost:8080 (override any env var, or use a .env file)
 docker compose up --build           # same thing, containerized
 make test                           # integration tests (storms, limits, idempotency, cancel)
 make burst URL=http://localhost:8080   # or: ./burst.sh https://<live-url>

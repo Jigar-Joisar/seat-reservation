@@ -47,3 +47,6 @@ data/
 # Temporary files
 *.tmp
 *.temp
+
+# Local config
+.env

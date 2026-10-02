@@ -5,6 +5,6 @@ build:
 test:
 	mvn -q test
 run:
-	java -jar target/seat-reservation-1.0.0.jar
+	./run.sh
 burst:
 	python3 burst.py $(URL)
