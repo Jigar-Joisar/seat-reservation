@@ -20,6 +20,7 @@ import java.util.regex.Pattern;
 
 @Service
 public class ShowService {
+    public static final long MAX_PRICE_PAISE = 1_000_000_000_000L;
     public static final Pattern SEAT = Pattern.compile("[A-Za-z0-9_-]{1,32}");
 
     private final JdbcTemplate jdbc;
@@ -46,7 +47,7 @@ public class ShowService {
         if (r == null || r.name() == null || r.name().isBlank() || r.name().length() > 255) throw ApiException.badRequest("name is required (max 255 chars)");
         if (r.seats() == null || r.seats().isEmpty()) throw ApiException.badRequest("seats must be a non-empty list");
         if (r.seats().size() > maxSeats) throw ApiException.badRequest("too many seats (max " + maxSeats + ")");
-        if (r.pricePaise() == null || r.pricePaise() <= 0) throw ApiException.badRequest("price_paise must be a positive integer");
+        if (r.pricePaise() == null || r.pricePaise() <= 0 || r.pricePaise() > MAX_PRICE_PAISE) throw ApiException.badRequest("price_paise must be a positive integer up to " + MAX_PRICE_PAISE);
         int limit = r.perUserLimit() == null ? defaultLimit : r.perUserLimit();
         if (limit < 1 || limit > 1000) throw ApiException.badRequest("per_user_limit must be between 1 and 1000");
         HashSet<String> seen = new HashSet<>();

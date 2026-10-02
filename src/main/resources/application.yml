@@ -14,6 +14,10 @@ spring:
   jackson:
     property-naming-strategy: SNAKE_CASE
     default-property-inclusion: non_null
+    deserialization:
+      accept-float-as-int: false
+    mapper:
+      allow-coercion-of-scalars: false
   datasource:
     url: ${DATABASE_URL:jdbc:h2:file:./data/seats;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;LOCK_TIMEOUT=15000;DB_CLOSE_ON_EXIT=FALSE}
     driver-class-name: org.h2.Driver
