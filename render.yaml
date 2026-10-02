@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: seat-reservation
+    runtime: docker
+    plan: free
+    healthCheckPath: /health/ready
+    envVars:
+      - key: JWT_SECRET
+        generateValue: true
+      - key: ADMIN_SECRET
+        generateValue: true
+      - key: PER_USER_LIMIT
+        value: "4"

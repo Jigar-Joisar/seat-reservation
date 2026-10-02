@@ -1,21 +1,13 @@
-version: '3.8'
-
 services:
   app:
     build: .
     ports:
       - "8080:8080"
-    volumes:
-      - ./data:/app/data  # H2 database persistence
     environment:
-      - SPRING_DATASOURCE_URL=jdbc:h2:file:/app/data/seats.db;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE
-      - JWT_SECRET=your-secret-key-change-in-production
-      - PER_USER_LIMIT=4
-      - HOLD_DURATION_MINUTES=5
-      - SPRING_PROFILES_ACTIVE=prod
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/health/live"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
+      JWT_SECRET: ${JWT_SECRET:-dev-only-jwt-secret-change-me}
+      ADMIN_SECRET: ${ADMIN_SECRET:-dev-admin-secret}
+      PER_USER_LIMIT: "4"
+    volumes:
+      - seat-data:/app/data
+volumes:
+  seat-data:
