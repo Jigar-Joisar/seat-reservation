@@ -1,0 +1,8 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:seats;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;LOCK_TIMEOUT=15000;DB_CLOSE_DELAY=-1
+management:
+  prometheus:
+    metrics:
+      export:
+        enabled: true

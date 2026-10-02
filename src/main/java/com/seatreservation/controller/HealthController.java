@@ -1,22 +1,57 @@
 package com.seatreservation.controller;
 
+import com.zaxxer.hikari.HikariDataSource;
+import jakarta.annotation.PreDestroy;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-@RestController
-@RequestMapping("/health")
-public class HealthController {
+import javax.sql.DataSource;
+import java.util.Map;
 
-    @GetMapping("/live")
-    public ResponseEntity<String> liveness() {
-        return ResponseEntity.ok("OK");
+@RestController
+public class HealthController {
+    private static final Logger log = LoggerFactory.getLogger(HealthController.class);
+    private final HikariDataSource probePool;
+    private final JdbcTemplate probe;
+
+    /** Dedicated tiny pool so readiness is not starved by a saturated request pool during a burst. */
+    public HealthController(DataSource main) {
+        HikariDataSource m = (HikariDataSource) main;
+        probePool = new HikariDataSource();
+        probePool.setPoolName("health-probe");
+        probePool.setJdbcUrl(m.getJdbcUrl());
+        probePool.setUsername(m.getUsername());
+        probePool.setPassword(m.getPassword());
+        probePool.setMaximumPoolSize(2);
+        probePool.setMinimumIdle(0);
+        probePool.setConnectionTimeout(2000);
+        probePool.setInitializationFailTimeout(-1);
+        probe = new JdbcTemplate(probePool);
+        probe.setQueryTimeout(2);
     }
 
-    @GetMapping("/ready")
-    public ResponseEntity<String> readiness() {
-        // Actuator will handle DB connectivity check via /actuator/health
-        return ResponseEntity.ok("OK");
+    @GetMapping("/health/live")
+    public Map<String, String> live() {
+        return Map.of("status", "UP");
+    }
+
+    @GetMapping("/health/ready")
+    public ResponseEntity<Map<String, String>> ready() {
+        try {
+            probe.queryForObject("SELECT 1", Integer.class);
+            return ResponseEntity.ok(Map.of("status", "UP", "database", "UP"));
+        } catch (Exception e) {
+            log.error("readiness check failed: database unreachable", e);
+            return ResponseEntity.status(503).body(Map.of("status", "DOWN", "database", "DOWN"));
+        }
+    }
+
+    @PreDestroy
+    void close() {
+        probePool.close();
     }
 }

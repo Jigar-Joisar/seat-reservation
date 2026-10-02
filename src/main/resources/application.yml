@@ -1,72 +1,53 @@
 server:
-  port: 8080
+  port: ${PORT:8080}
+  shutdown: graceful
+  tomcat:
+    threads:
+      max: 200
+    max-connections: 20000
+    accept-count: 4000
+    connection-timeout: 60s
 
 spring:
   application:
     name: seat-reservation
-
+  jackson:
+    property-naming-strategy: SNAKE_CASE
+    default-property-inclusion: non_null
   datasource:
-    url: jdbc:h2:file:./data/seats.db;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE
+    url: ${DATABASE_URL:jdbc:h2:file:./data/seats;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;LOCK_TIMEOUT=15000;DB_CLOSE_ON_EXIT=FALSE}
     driver-class-name: org.h2.Driver
     username: sa
     password:
-
-  h2:
-    console:
-      enabled: false
-
-  jpa:
-    hibernate:
-      ddl-auto: update
-    show-sql: false
-    properties:
-      hibernate:
-        dialect: org.hibernate.dialect.H2Dialect
-        format_sql: true
-        order_inserts: true
-        order_updates: true
-        jdbc:
-          batch_size: 20
-
+    hikari:
+      maximum-pool-size: ${DB_POOL_SIZE:32}
+      minimum-idle: 8
+      connection-timeout: 60000
+      transaction-isolation: TRANSACTION_READ_COMMITTED
   sql:
     init:
-      mode: never
+      mode: always
+  autoconfigure:
+    exclude: org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
 
-# Actuator configuration
 management:
   endpoints:
     web:
       exposure:
-        include: health,metrics,prometheus
+        include: health,prometheus,metrics
   endpoint:
     health:
       probes:
         enabled: true
-      show-details: always
-    metrics:
-      enabled: true
-    prometheus:
-      enabled: true
-  health:
-    db:
-      enabled: true
-  metrics:
-    export:
-      prometheus:
-        enabled: true
 
-# Application configuration
 app:
   jwt:
-    secret: ${JWT_SECRET:your-secret-key-change-in-production}
-    expiration: 86400000  # 24 hours in milliseconds
-
-  reservation:
-    per-user-limit: ${PER_USER_LIMIT:4}
-    hold-duration-minutes: ${HOLD_DURATION_MINUTES:5}
+    secret: ${JWT_SECRET:dev-only-jwt-secret-change-me}
+    ttl-seconds: 86400
+  admin-secret: ${ADMIN_SECRET:dev-admin-secret}
+  per-user-limit: ${PER_USER_LIMIT:4}
+  max-seats-per-show: 100000
 
 logging:
   level:
-    com.seatreservation: INFO
-    org.springframework.web: INFO
-    org.hibernate.SQL: WARN
+    root: INFO

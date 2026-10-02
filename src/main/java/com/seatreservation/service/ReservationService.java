@@ -1,209 +1,161 @@
 package com.seatreservation.service;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.seatreservation.exception.IdempotencyConflictException;
-import com.seatreservation.exception.PerUserLimitExceededException;
-import com.seatreservation.exception.SeatNotAvailableException;
-import com.seatreservation.model.Reservation;
-import com.seatreservation.model.Seat;
-import com.seatreservation.model.Show;
-import com.seatreservation.model.dto.ReserveSeatsRequest;
-import com.seatreservation.model.dto.ReservationResponse;
-import com.seatreservation.repository.ReservationRepository;
-import com.seatreservation.repository.SeatRepository;
-import com.seatreservation.repository.ShowRepository;
-import io.micrometer.core.instrument.MeterRegistry;
+import com.seatreservation.api.ApiException;
+import com.seatreservation.api.Dtos.ReservationView;
 import io.micrometer.core.instrument.Timer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.DuplicateKeyException;
+import org.springframework.http.HttpStatus;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Isolation;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
+import java.sql.Timestamp;
 import java.time.Instant;
-import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
+import java.util.*;
 
+import static net.logstash.logback.argument.StructuredArguments.kv;
+
+/**
+ * Atomic decision points (all inside one READ_COMMITTED transaction):
+ *  1. per (show,user) allocation row is locked FOR UPDATE -> serializes one user's requests (limit + idempotency)
+ *  2. each seat is taken with a conditional UPDATE ... WHERE status='available' -> exactly one winner per seat
+ *  3. seats are always updated in sorted order -> no lock-order cycles between multi-seat requests
+ */
 @Service
 public class ReservationService {
-
     private static final Logger log = LoggerFactory.getLogger(ReservationService.class);
 
-    private final ReservationRepository reservationRepository;
-    private final SeatRepository seatRepository;
-    private final ShowRepository showRepository;
-    private final ObjectMapper objectMapper;
-    private final MeterRegistry meterRegistry;
+    public record Result(ReservationView view, boolean replay) {}
 
-    public ReservationService(ReservationRepository reservationRepository,
-                             SeatRepository seatRepository,
-                             ShowRepository showRepository,
-                             ObjectMapper objectMapper,
-                             MeterRegistry meterRegistry) {
-        this.reservationRepository = reservationRepository;
-        this.seatRepository = seatRepository;
-        this.showRepository = showRepository;
-        this.objectMapper = objectMapper;
-        this.meterRegistry = meterRegistry;
+    private final JdbcTemplate jdbc;
+    private final TransactionTemplate tx;
+    private final ReservationMetrics metrics;
+
+    public ReservationService(JdbcTemplate jdbc, TransactionTemplate tx, ReservationMetrics metrics) {
+        this.jdbc = jdbc;
+        this.tx = tx;
+        this.metrics = metrics;
     }
 
-    @Value("${app.reservation.per-user-limit:4}")
-    private int perUserLimit;
-
-    @Value("${app.reservation.hold-duration-minutes:5}")
-    private int holdDurationMinutes;
-
-    @Transactional(isolation = Isolation.SERIALIZABLE)
-    public ReservationResponse reserveSeats(String showId, ReserveSeatsRequest request, String userId) {
-        Timer.Sample sample = Timer.start(meterRegistry);
-
+    public Result reserve(String showId, String userId, List<String> requested, String idemKey) {
+        Timer.Sample sample = Timer.start();
         try {
-            // Check idempotency first
-            Optional<Reservation> existing = reservationRepository.findByIdempotencyKey(request.getIdempotencyKey());
-            if (existing.isPresent()) {
-                Reservation existingRes = existing.get();
-                if (!seatListsMatch(request.getSeats(), existingRes.getSeats())) {
-                    meterRegistry.counter("reservations_declined_total", "reason", "idempotent_replay").increment();
-                    throw new IdempotencyConflictException("Same idempotency key with different seats");
-                }
-                log.info("Returning existing reservation for idempotency key: {}", request.getIdempotencyKey());
-                return buildReservationResponse(existingRes);
-            }
-
-            // Load show
-            Show show = showRepository.findById(showId)
-                    .orElseThrow(() -> new IllegalArgumentException("Show not found: " + showId));
-
-            // Sort seats in deterministic order to prevent deadlocks
-            List<String> sortedSeats = request.getSeats().stream().sorted().toList();
-
-            // Check per-user limit
-            long currentHeldCount = reservationRepository.countByShowIdAndUserIdAndStatus(
-                    showId, userId);
-            if (currentHeldCount + sortedSeats.size() > perUserLimit) {
-                meterRegistry.counter("reservations_declined_total", "reason", "per_user_limit").increment();
-                throw new PerUserLimitExceededException(perUserLimit, currentHeldCount, sortedSeats.size());
-            }
-
-            // Lock seats using pessimistic locking
-            List<Seat> seats = seatRepository.findByShowIdAndSeatNumberInWithLock(showId, sortedSeats);
-
-            if (seats.size() != sortedSeats.size()) {
-                meterRegistry.counter("reservations_declined_total", "reason", "seat_not_found").increment();
-                throw new IllegalArgumentException("One or more seats not found");
-            }
-
-            // Check if all seats are available
-            for (Seat seat : seats) {
-                if (seat.getStatus() != Seat.SeatStatus.AVAILABLE) {
-                    meterRegistry.counter("reservations_declined_total", "reason", "seat_taken").increment();
-                    throw new SeatNotAvailableException(seat.getSeatNumber(), seat.getStatus().name());
-                }
-            }
-
-            // Update all seats atomically
-            Instant holdExpiry = Instant.now().plusSeconds(holdDurationMinutes * 60L);
-            for (Seat seat : seats) {
-                seat.setStatus(Seat.SeatStatus.CONFIRMED);
-                seat.setConfirmedByUserId(userId);
-                seat.setConfirmedAt(Instant.now());
-            }
-            seatRepository.saveAll(seats);
-
-            // Create reservation
-            String seatsJson;
-            try {
-                seatsJson = objectMapper.writeValueAsString(request.getSeats());
-            } catch (JsonProcessingException e) {
-                throw new RuntimeException("Failed to serialize seats", e);
-            }
-
-            Reservation reservation = new Reservation();
-            reservation.setShow(show);
-            reservation.setUserId(userId);
-            reservation.setSeats(seatsJson);
-            reservation.setAmountPaise(show.getPricePaise() * request.getSeats().size());
-            reservation.setStatus(Reservation.ReservationStatus.CONFIRMED);
-            reservation.setIdempotencyKey(request.getIdempotencyKey());
-
-            try {
-                reservation = reservationRepository.save(reservation);
-                meterRegistry.counter("reservations_confirmed_total").increment();
-                log.info("Reservation created: {} for user: {}, seats: {}", reservation.getId(), userId, request.getSeats());
-                return buildReservationResponse(reservation);
-            } catch (DataIntegrityViolationException e) {
-                // Unique constraint violation - another transaction won
-                meterRegistry.counter("reservations_declined_total", "reason", "idempotency_conflict").increment();
-                Optional<Reservation> winner = reservationRepository.findByIdempotencyKey(request.getIdempotencyKey());
-                if (winner.isPresent()) {
-                    if (!seatListsMatch(request.getSeats(), winner.get().getSeats())) {
-                        throw new IdempotencyConflictException("Same idempotency key with different seats");
-                    }
-                    log.info("Another transaction won for idempotency key: {}", request.getIdempotencyKey());
-                    return buildReservationResponse(winner.get());
-                }
-                throw e;
-            }
+            List<String> seats = validate(requested, idemKey);
+            Result r = doReserve(showId, userId, seats, idemKey);
+            if (r.replay()) metrics.declined("idempotent_replay");
+            else metrics.confirmed();
+            return r;
+        } catch (ApiException e) {
+            if (e.status() == HttpStatus.CONFLICT || e.error().equals("invalid_seat")) metrics.declined(e.error());
+            throw e;
+        } catch (org.springframework.dao.ConcurrencyFailureException | org.springframework.dao.QueryTimeoutException e) {
+            metrics.declined("contention");
+            throw e;
         } finally {
-            sample.stop(meterRegistry.timer("reservation_duration_seconds"));
+            sample.stop(metrics.reserveTimer());
         }
     }
 
-    @Transactional
-    public void cancelReservation(String reservationId, String userId) {
-        Reservation reservation = reservationRepository.findById(reservationId)
-                .orElseThrow(() -> new IllegalArgumentException("Reservation not found: " + reservationId));
-
-        if (!reservation.getUserId().equals(userId)) {
-            throw new IllegalArgumentException("User can only cancel their own reservations");
+    private List<String> validate(List<String> requested, String idemKey) {
+        if (idemKey == null || idemKey.isBlank() || idemKey.length() > 128) throw ApiException.badRequest("idempotency_key is required (max 128 chars)");
+        if (requested == null || requested.isEmpty()) throw ApiException.badRequest("seats must be a non-empty list");
+        if (requested.size() > 100) throw ApiException.badRequest("too many seats in one request (max 100)");
+        TreeSet<String> sorted = new TreeSet<>();
+        for (String s : requested) {
+            if (s == null || !ShowService.SEAT.matcher(s).matches()) throw ApiException.badRequest("invalid seat name: " + s);
+            if (!sorted.add(s)) throw ApiException.badRequest("duplicate seat in request: " + s);
         }
-
-        if (reservation.getStatus() == Reservation.ReservationStatus.CANCELLED) {
-            throw new IllegalArgumentException("Reservation already cancelled");
-        }
-
-        // Release seats
-        // Note: In a more complex system, we'd track which seats belong to which reservation
-        // For simplicity, we're assuming the reservation holds the seats mentioned in the seats JSON
-        // In production, we'd have a reservation_seats junction table
-
-        reservation.setStatus(Reservation.ReservationStatus.CANCELLED);
-        reservationRepository.save(reservation);
-
-        meterRegistry.counter("reservations_cancelled_total").increment();
-        log.info("Reservation cancelled: {} by user: {}", reservationId, userId);
+        return new ArrayList<>(sorted);
     }
 
-    private boolean seatListsMatch(List<String> requestSeats, String existingSeatsJson) {
+    private Result doReserve(String showId, String userId, List<String> seats, String idemKey) {
+        Optional<Result> fast = replayIfExists(userId, idemKey, seats);
+        if (fast.isPresent()) return fast.get();
+
+        var show = jdbc.query("SELECT price_paise, per_user_limit FROM shows WHERE id = ?",
+                (rs, i) -> new long[]{rs.getLong(1), rs.getInt(2)}, showId);
+        if (show.isEmpty()) throw new ApiException(HttpStatus.NOT_FOUND, "show_not_found", "Show not found: " + showId);
+        long price = show.get(0)[0];
+        int limit = (int) show.get(0)[1];
+
         try {
-            List<String> existingSeats = objectMapper.readValue(existingSeatsJson,
-                    objectMapper.getTypeFactory().constructCollectionType(List.class, String.class));
-            return requestSeats.size() == existingSeats.size() &&
-                   requestSeats.containsAll(existingSeats) &&
-                   existingSeats.containsAll(requestSeats);
-        } catch (JsonProcessingException e) {
-            return false;
+            jdbc.update("INSERT INTO user_show_allocations (show_id, user_id, seats_held) VALUES (?,?,0)", showId, userId);
+        } catch (DuplicateKeyException ignored) {
+            // row already exists
+        }
+
+        try {
+            return tx.execute(st -> {
+                Integer held = jdbc.queryForObject(
+                        "SELECT seats_held FROM user_show_allocations WHERE show_id = ? AND user_id = ? FOR UPDATE", Integer.class, showId, userId);
+                Optional<Result> again = replayIfExists(userId, idemKey, seats);
+                if (again.isPresent()) return again.get();
+                if (held + seats.size() > limit) {
+                    throw new ApiException(HttpStatus.CONFLICT, "per_user_limit", "Per-user limit exceeded",
+                            Map.of("limit", limit, "currently_held", held, "requested", seats.size()));
+                }
+                String reservationId = UUID.randomUUID().toString();
+                for (String seat : seats) {
+                    int n = jdbc.update("UPDATE seats SET status = 'confirmed', user_id = ?, reservation_id = ? "
+                            + "WHERE show_id = ? AND seat_number = ? AND status = 'available'", userId, reservationId, showId, seat);
+                    if (n == 0) {
+                        boolean exists = Boolean.TRUE.equals(jdbc.queryForObject(
+                                "SELECT COUNT(*) > 0 FROM seats WHERE show_id = ? AND seat_number = ?", Boolean.class, showId, seat));
+                        if (!exists) throw new ApiException(HttpStatus.BAD_REQUEST, "invalid_seat", "Unknown seat: " + seat);
+                        throw new ApiException(HttpStatus.CONFLICT, "seat_taken", "Seat already taken: " + seat, Map.of("seat", seat));
+                    }
+                }
+                long amount = Math.multiplyExact(price, (long) seats.size());
+                jdbc.update("INSERT INTO reservations (id, show_id, user_id, seats, seat_count, amount_paise, status, idempotency_key, created_at) "
+                                + "VALUES (?,?,?,?,?,?,'confirmed',?,?)",
+                        reservationId, showId, userId, String.join(",", seats), seats.size(), amount, idemKey, Timestamp.from(Instant.now()));
+                jdbc.update("UPDATE user_show_allocations SET seats_held = seats_held + ? WHERE show_id = ? AND user_id = ?", seats.size(), showId, userId);
+                log.info("reservation confirmed", kv("reservation_id", reservationId), kv("show_id", showId), kv("user_id", userId), kv("seats", seats));
+                return new Result(new ReservationView(reservationId, showId, userId, seats, amount, "confirmed"), false);
+            });
+        } catch (DuplicateKeyException e) {
+            return replayIfExists(userId, idemKey, seats).orElseThrow(() -> e);
         }
     }
 
-    private ReservationResponse buildReservationResponse(Reservation reservation) {
-        try {
-            List<String> seats = objectMapper.readValue(reservation.getSeats(),
-                    objectMapper.getTypeFactory().constructCollectionType(List.class, String.class));
-            return new ReservationResponse(
-                    reservation.getId(),
-                    reservation.getShow().getId(),
-                    reservation.getUserId(),
-                    seats,
-                    reservation.getAmountPaise(),
-                    reservation.getStatus().name()
-            );
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException("Failed to deserialize seats", e);
+    private Optional<Result> replayIfExists(String userId, String idemKey, List<String> seats) {
+        var rows = jdbc.query("SELECT id, show_id, seats, amount_paise, status FROM reservations WHERE user_id = ? AND idempotency_key = ?",
+                (rs, i) -> new Object[]{rs.getString(1), rs.getString(2), rs.getString(3), rs.getLong(4), rs.getString(5)}, userId, idemKey);
+        if (rows.isEmpty()) return Optional.empty();
+        Object[] r = rows.get(0);
+        List<String> existing = Arrays.asList(((String) r[2]).split(","));
+        if (!existing.equals(seats)) {
+            throw new ApiException(HttpStatus.CONFLICT, "idempotency_conflict", "Idempotency key was already used with a different request body");
         }
+        return Optional.of(new Result(new ReservationView((String) r[0], (String) r[1], userId, existing, (Long) r[3], (String) r[4]), true));
+    }
+
+    public ReservationView get(String reservationId, String userId) {
+        var rows = jdbc.query("SELECT id, show_id, user_id, seats, amount_paise, status FROM reservations WHERE id = ?",
+                (rs, i) -> new ReservationView(rs.getString(1), rs.getString(2), rs.getString(3),
+                        Arrays.asList(rs.getString(4).split(",")), rs.getLong(5), rs.getString(6)), reservationId);
+        if (rows.isEmpty()) throw new ApiException(HttpStatus.NOT_FOUND, "reservation_not_found", "Reservation not found");
+        if (!rows.get(0).userId().equals(userId)) throw new ApiException(HttpStatus.FORBIDDEN, "forbidden", "Not your reservation");
+        return rows.get(0);
+    }
+
+    /** Owner-only, idempotent. Seats are released only if they still belong to THIS reservation. */
+    public ReservationView cancel(String reservationId, String userId) {
+        ReservationView current = get(reservationId, userId);
+        return tx.execute(st -> {
+            jdbc.queryForObject("SELECT seats_held FROM user_show_allocations WHERE show_id = ? AND user_id = ? FOR UPDATE",
+                    Integer.class, current.showId(), userId);
+            String status = jdbc.queryForObject("SELECT status FROM reservations WHERE id = ? FOR UPDATE", String.class, reservationId);
+            if ("cancelled".equals(status)) return new ReservationView(current.reservationId(), current.showId(), userId, current.seats(), current.amountPaise(), "cancelled");
+            int released = jdbc.update("UPDATE seats SET status = 'available', user_id = NULL, reservation_id = NULL "
+                    + "WHERE reservation_id = ? AND status = 'confirmed'", reservationId);
+            jdbc.update("UPDATE reservations SET status = 'cancelled' WHERE id = ?", reservationId);
+            jdbc.update("UPDATE user_show_allocations SET seats_held = seats_held - ? WHERE show_id = ? AND user_id = ?", released, current.showId(), userId);
+            metrics.cancelled();
+            log.info("reservation cancelled", kv("reservation_id", reservationId), kv("show_id", current.showId()), kv("user_id", userId), kv("released", released));
+            return new ReservationView(current.reservationId(), current.showId(), userId, current.seats(), current.amountPaise(), "cancelled");
+        });
     }
 }
