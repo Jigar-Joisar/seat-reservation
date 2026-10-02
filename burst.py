@@ -1,262 +1,239 @@
 #!/usr/bin/env python3
+"""On-sale stampede for the seat-reservation service. Stdlib only.
+
+usage: ./burst.py <BASE_URL> [--requests 20000] [--users 2000] [--admin-secret S]
+Exits non-zero if any correctness check fails.
 """
-Burst Testing Script for Seat Reservation Service
-Simulates on-sale stampede with concurrent requests
-"""
+import argparse, collections, http.client, json, os, random, re, ssl, sys, threading, time
+from concurrent.futures import ThreadPoolExecutor
+from urllib.parse import urlparse
 
-import argparse
-import json
-import random
-import sys
-import time
-from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Dict, List, Tuple
-import requests
+local = threading.local()
 
 
-class BurstTester:
-    def __init__(self, base_url: str, num_users: int, requests_per_user: int):
-        self.base_url = base_url.rstrip('/')
-        self.num_users = num_users
-        self.requests_per_user = requests_per_user
-        self.total_requests = num_users * requests_per_user
+class Client:
+    def __init__(self, base):
+        u = urlparse(base)
+        self.https = u.scheme == "https"
+        self.host, self.port = u.hostname, u.port or (443 if self.https else 80)
 
-        # Statistics
-        self.confirmed = 0
-        self.declined_seat_taken = 0
-        self.declined_user_limit = 0
-        self.declined_idempotency = 0
-        self.errors = 0
+    def _conn(self):
+        c = getattr(local, "c", None)
+        if c is None:
+            c = (http.client.HTTPSConnection(self.host, self.port, timeout=120, context=ssl.create_default_context())
+                 if self.https else http.client.HTTPConnection(self.host, self.port, timeout=120))
+            local.c = c
+        return c
 
-    def check_health(self) -> bool:
-        """Check if service is healthy and ready"""
-        try:
-            # Liveness check
-            resp = requests.get(f"{self.base_url}/health/live", timeout=5)
-            if resp.status_code != 200:
-                print(f"❌ Liveness check failed: HTTP {resp.status_code}")
-                return False
-
-            # Readiness check
-            resp = requests.get(f"{self.base_url}/actuator/health", timeout=5)
-            if resp.status_code != 200:
-                print(f"❌ Readiness check failed: HTTP {resp.status_code}")
-                return False
-
-            print("✓ Service is healthy and ready")
-            return True
-        except Exception as e:
-            print(f"❌ Health check failed: {e}")
-            return False
-
-    def create_show(self) -> str:
-        """Create a test show and return its ID"""
-        try:
-            payload = {
-                "name": "burst-test-show",
-                "seats": [f"A{i}" for i in range(1, 11)],  # A1-A10
-                "price_paise": 25000
-            }
-
-            resp = requests.post(
-                f"{self.base_url}/shows",
-                json=payload,
-                headers={"Content-Type": "application/json"},
-                timeout=10
-            )
-
-            if resp.status_code == 201:
-                show_id = resp.json()["id"]
-                print(f"✓ Created test show: {show_id}")
-                return show_id
-            else:
-                print(f"❌ Failed to create show: HTTP {resp.status_code}")
-                print(f"Response: {resp.text}")
-                sys.exit(1)
-        except Exception as e:
-            print(f"❌ Failed to create show: {e}")
-            sys.exit(1)
-
-    def make_reservation(self, user_id: int, show_id: str, request_num: int) -> Tuple[int, str]:
-        """Make a single reservation request"""
-        try:
-            # Alternate between hot seat (A1) and random seats
-            if request_num % 10 == 0:
-                # Hot seat contention
-                seats = ["A1"]
-            else:
-                # Random seat
-                seat_num = random.randint(1, 10)
-                seats = [f"A{seat_num}"]
-
-            idempotency_key = f"user-{user_id}-req-{request_num}"
-
-            # Use mock JWT token (in production, you'd use real tokens)
-            token = f"Bearer user-{user_id}"
-
-            payload = {
-                "seats": seats,
-                "idempotency_key": idempotency_key
-            }
-
-            resp = requests.post(
-                f"{self.base_url}/shows/{show_id}/reserve",
-                json=payload,
-                headers={
-                    "Content-Type": "application/json",
-                    "Authorization": token
-                },
-                timeout=30
-            )
-
-            return resp.status_code, resp.text
-        except Exception as e:
-            return 500, str(e)
-
-    def process_result(self, status_code: int, body: str):
-        """Process a single result and update statistics"""
-        if status_code == 201:
-            self.confirmed += 1
-        elif status_code == 409:
+    def call(self, method, path, token=None, body=None, headers=None):
+        h = {"Content-Type": "application/json"}
+        if token: h["Authorization"] = "Bearer " + token
+        h.update(headers or {})
+        data = json.dumps(body) if body is not None else None
+        for attempt in range(3):
             try:
-                error_data = json.loads(body)
-                error_type = error_data.get("error", "")
-                if "seat_not_available" in error_type:
-                    self.declined_seat_taken += 1
-                elif "per_user_limit" in error_type:
-                    self.declined_user_limit += 1
-                elif "idempotency" in error_type:
-                    self.declined_idempotency += 1
-                else:
-                    self.declined_seat_taken += 1
-            except:
-                self.declined_seat_taken += 1
-        elif status_code >= 500:
-            self.errors += 1
-
-    def run_burst_test(self, show_id: str):
-        """Run the burst test with concurrent requests"""
-        print(f"\n🚀 Launching {self.total_requests} concurrent requests...")
-
-        with ThreadPoolExecutor(max_workers=200) as executor:
-            futures = []
-
-            for user_id in range(1, self.num_users + 1):
-                for request_num in range(1, self.requests_per_user + 1):
-                    future = executor.submit(
-                        self.make_reservation,
-                        user_id,
-                        show_id,
-                        request_num
-                    )
-                    futures.append(future)
-
-            # Process results as they complete
-            for future in as_completed(futures):
-                status_code, body = future.result()
-                self.process_result(status_code, body)
-
-        print("✓ All requests completed")
-
-    def get_final_state(self, show_id: str) -> Dict:
-        """Get the final state of the show"""
-        try:
-            resp = requests.get(f"{self.base_url}/shows/{show_id}", timeout=10)
-            if resp.status_code == 200:
-                return resp.json()
-            else:
-                print(f"⚠ Failed to get final state: HTTP {resp.status_code}")
-                return {}
-        except Exception as e:
-            print(f"⚠ Failed to get final state: {e}")
-            return {}
-
-    def print_results(self, final_state: Dict):
-        """Print the test results"""
-        print("\n" + "=" * 50)
-        print("BURST TEST RESULTS")
-        print("=" * 50)
-        print(f"Confirmed reservations:    {self.confirmed}")
-        print(f"Declined (seat taken):     {self.declined_seat_taken}")
-        print(f"Declined (user limit):     {self.declined_user_limit}")
-        print(f"Declined (idempotency):    {self.declined_idempotency}")
-        print(f"Server errors (5xx):       {self.errors}")
-        print("=" * 50)
-        print(f"Total requests:              {self.total_requests}")
-        total_processed = (self.confirmed + self.declined_seat_taken +
-                          self.declined_user_limit + self.declined_idempotency +
-                          self.errors)
-        print(f"Total processed:             {total_processed}")
-        print("=" * 50)
-
-        if final_state:
-            print("\nFinal Show State:")
-            print(json.dumps(final_state, indent=2))
-
-            # Validate reconciliation invariant
-            counts = final_state.get("counts", {})
-            available = counts.get("available", 0)
-            held = counts.get("held", 0)
-            confirmed = counts.get("confirmed", 0)
-            total = counts.get("total", 0)
-
-            print("\nReconciliation Check:")
-            print(f"Available: {available}")
-            print(f"Held: {held}")
-            print(f"Confirmed: {confirmed}")
-            print(f"Total: {total}")
-            sum_val = available + held + confirmed
-            print(f"Sum (Available + Held + Confirmed): {sum_val}")
-
-            if sum_val == total:
-                print("✓ Reconciliation invariant holds")
-            else:
-                print("✗ Reconciliation invariant VIOLATED")
-                sys.exit(1)
-
-        if self.errors > 0:
-            print(f"\n❌ Test failed: {self.errors} server errors detected")
-            sys.exit(1)
-
-        print("\n✅ Burst test completed successfully")
+                c = self._conn()
+                c.request(method, path, data, h)
+                r = c.getresponse()
+                raw = r.read().decode()
+                try: js = json.loads(raw)
+                except ValueError: js = {"raw": raw}
+                return r.status, js, raw
+            except (http.client.HTTPException, OSError):
+                local.c = None
+                if attempt == 2: return 599, {"error": "transport"}, ""
+        return 599, {}, ""
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Burst test for Seat Reservation Service")
-    parser.add_argument("base_url", help="Base URL of the service (e.g., http://localhost:8080)")
-    parser.add_argument("--users", type=int, default=100, help="Number of users (default: 100)")
-    parser.add_argument("--requests", type=int, default=200, help="Requests per user (default: 200)")
-    args = parser.parse_args()
+    ap = argparse.ArgumentParser()
+    ap.add_argument("base_url")
+    ap.add_argument("--requests", type=int, default=20000)
+    ap.add_argument("--users", type=int, default=2000)
+    ap.add_argument("--seats", type=int, default=500)
+    ap.add_argument("--hot", type=int, default=5, help="number of hot seats")
+    ap.add_argument("--workers", type=int, default=200)
+    ap.add_argument("--admin-secret", default=os.environ.get("ADMIN_SECRET", "dev-admin-secret"))
+    a = ap.parse_args()
+    api = Client(a.base_url.rstrip("/"))
+    fails = []
+    RUN = "%x" % random.getrandbits(32)
+    ALL = []
 
-    print("=" * 50)
-    print("Seat Reservation Burst Test")
-    print("=" * 50)
-    print(f"Base URL: {args.base_url}")
-    print(f"Users: {args.users}")
-    print(f"Requests per user: {args.requests}")
-    print(f"Total requests: {args.users * args.requests}")
-    print("=" * 50)
+    def check(ok, msg):
+        print(("  PASS  " if ok else "  FAIL  ") + msg)
+        if not ok: fails.append(msg)
 
-    tester = BurstTester(args.base_url, args.users, args.requests)
+    def metrics():
+        s, _, raw = api.call("GET", "/actuator/prometheus")
+        out = {}
+        for line in raw.splitlines():
+            m = re.match(r'^(reservations_\w+)(\{reason="(\w+)"[^}]*\})?\s+([0-9.eE+-]+)$', line)
+            if m: out[m.group(1) + (":" + m.group(3) if m.group(3) else "")] = float(m.group(4))
+        return out
 
-    # Check health
-    if not tester.check_health():
-        sys.exit(1)
+    print(f"== target {a.base_url}")
+    for _ in range(60):  # tolerate cold start
+        s, _, _ = api.call("GET", "/health/ready")
+        if s == 200: break
+        time.sleep(2)
+    check(s == 200, "readiness /health/ready == 200")
+    if s != 200: sys.exit(1)
 
-    # Create show
-    show_id = tester.create_show()
+    s, js, _ = api.call("POST", "/auth/token", body={"user_id": "burst-admin", "admin_secret": a.admin_secret})
+    if s != 200: print("cannot get admin token", s, js); sys.exit(1)
+    admin = js["token"]
 
-    # Run burst test
-    start_time = time.time()
-    tester.run_burst_test(show_id)
-    duration = time.time() - start_time
-    print(f"\nTest duration: {duration:.2f} seconds")
+    pool = ThreadPoolExecutor(max_workers=a.workers)
+    tokens = {}
 
-    # Get final state
-    final_state = tester.get_final_state(show_id)
+    def tok(u):
+        if u not in tokens:
+            tokens[u] = api.call("POST", "/auth/token", body={"user_id": u})[1]["token"]
+        return tokens[u]
 
-    # Print results
-    tester.print_results(final_state)
+    def new_show(n, limit=None):
+        body = {"name": "burst", "seats": [f"A{i}" for i in range(1, n + 1)], "price_paise": 25000}
+        if limit: body["per_user_limit"] = limit
+        s, js, _ = api.call("POST", "/shows", admin, body)
+        assert s == 201, (s, js)
+        return js["id"]
+
+    def reserve(show, user, seats, key):
+        s, js, _ = api.call("POST", f"/shows/{show}/reserve", tok(user), {"seats": seats, "idempotency_key": key})
+        ALL.append((s, js))
+        return s, js
+
+    def tally(results):
+        dist = collections.Counter()
+        for s, js in results:
+            if s in (200, 201): dist["201 confirmed" if s == 201 else "200 idempotent-replay"] += 1
+            elif s == 409: dist["409 " + js.get("error", "?")] += 1
+            else: dist[f"{s} {js.get('error', '')}".strip()] += 1
+        return dist
+
+    def five_xx(dist): return sum(v for k, v in dist.items() if k[0] == "5")
+
+    m0 = metrics()
+
+    # 1. hot seat storm
+    print("\n== 1. hot-seat storm: 500 distinct users, one seat (A1)")
+    show = new_show(100)
+    users = [f"hot-{RUN}-{i}" for i in range(500)]
+    list(pool.map(tok, users))
+    res = list(pool.map(lambda u: reserve(show, u, ["A1"], "k-" + u), users))
+    d = tally(res)
+    print("  ", dict(d))
+    check(d["201 confirmed"] == 1, "exactly one 201 for the hot seat")
+    check(d["409 seat_taken"] == 499, "other 499 got 409 seat_taken")
+    check(five_xx(d) == 0, "zero 5xx")
+
+    # 2. stampede
+    print(f"\n== 2. stampede: {a.requests} requests, {a.users} users, {a.seats} seats, {a.hot} hot seats, ~10% same-key retries")
+    show2 = new_show(a.seats)
+    seat_names = [f"A{i}" for i in range(1, a.seats + 1)]
+    hot = seat_names[:a.hot]
+    ids = [f"u{RUN}-{i}" for i in range(a.users)]
+    list(pool.map(tok, ids))
+    rnd = random.Random(7)
+    jobs = []
+    for i in range(a.requests):
+        u = rnd.choice(ids)
+        r = rnd.random()
+        seats = [rnd.choice(hot)] if r < 0.6 else [rnd.choice(seat_names)] if r < 0.9 else rnd.sample(seat_names, 2)
+        jobs.append((u, seats, f"{u}-{i}"))
+    for k in range(len(jobs) // 10):  # retries: same user+key+seats re-sent
+        jobs.append(jobs[rnd.randrange(len(jobs) // 10 * 9)])
+    rnd.shuffle(jobs)
+
+    stop = threading.Event()
+    inv_violations, inv_samples = [], [0]
+
+    def poll():
+        while not stop.is_set():
+            s, js, _ = api.call("GET", f"/shows/{show2}")
+            if s == 200:
+                inv_samples[0] += 1
+                if js["available"] + js["held"] + js["confirmed"] != js["total_seats"]: inv_violations.append(js)
+            time.sleep(0.05)
+    th = threading.Thread(target=poll); th.start()
+    t0 = time.time()
+    out = list(pool.map(lambda j: (j, reserve(show2, *j)), jobs))
+    dt = time.time() - t0
+    stop.set(); th.join()
+    d = tally([r for _, r in out])
+    print(f"   {len(jobs)} requests in {dt:.1f}s ({len(jobs)/dt:.0f} req/s)")
+    for k, v in sorted(d.items()): print(f"   {v:>7}  {k}")
+    check(five_xx(d) == 0, "zero 5xx during the stampede")
+    final = api.call("GET", f"/shows/{show2}")[1]
+    check(final["available"] + final["held"] + final["confirmed"] == final["total_seats"], f"final invariant: {final['available']}+{final['held']}+{final['confirmed']} == {final['total_seats']}")
+    check(not inv_violations, f"invariant held on all {inv_samples[0]} live samples during the burst")
+    winners = collections.defaultdict(set)
+    per_user = collections.defaultdict(set)
+    for (u, seats, key), (s, js) in out:
+        if s in (200, 201):
+            for st in js["seats"]: winners[st].add(js["user_id"]); per_user[js["user_id"]].add(st)
+            check_user = js["user_id"] == u
+            if not check_user: check(False, "identity mismatch in response")
+    check(all(len(v) == 1 for v in winners.values()), "no seat confirmed to more than one user")
+    check(len(winners) == final["confirmed"], f"distinct seats won ({len(winners)}) == confirmed in show state ({final['confirmed']})")
+    check(max((len(v) for v in per_user.values()), default=0) <= 4, "no user holds more than 4 seats")
+    retried = sum(1 for _, (s, js) in out if s == 200)
+    created = d["201 confirmed"]
+    check(sum(len(v) for v in per_user.values()) == final["confirmed"], "sum of per-user seats == confirmed seats")
+    print(f"   hot seats {hot}: winners = { {h: list(winners.get(h, [])) for h in hot} }")
+
+    # 3. idempotency
+    print("\n== 3. idempotency")
+    show3 = new_show(20)
+    same = list(pool.map(lambda _: reserve(show3, f"idem-{RUN}", ["A7"], "one-key"), range(50)))
+    d = tally(same); print("  ", dict(d))
+    check(d["201 confirmed"] == 1 and len({js["reservation_id"] for s, js in same if s in (200, 201)}) == 1, "50 parallel same-key requests -> exactly one reservation")
+    check(reserve(show3, f"idem-{RUN}", ["A8"], "one-key")[0] == 409, "same key, different seats -> 409")
+    check(api.call("GET", f"/shows/{show3}")[1]["confirmed"] == 1, "retries moved nothing extra")
+
+    # 4. per-user limit
+    print("\n== 4. per-user limit (limit=4, 10 parallel reserves by one user)")
+    show4 = new_show(30)
+    lim = list(pool.map(lambda i: reserve(show4, f"greedy-{RUN}", [f"A{i+1}"], f"g{i}"), range(10)))
+    d = tally(lim); print("  ", dict(d))
+    check(d["201 confirmed"] == 4 and d["409 per_user_limit"] == 6, "exactly 4 confirmed, 6 per_user_limit")
+
+    # 5. cancel + rebook
+    print("\n== 5. cancel / rebook / ownership")
+    show5 = new_show(5)
+    s, r1 = reserve(show5, f"own-{RUN}", ["A1"], "c1")
+    rid = r1["reservation_id"]
+    check(api.call("POST", f"/reservations/{rid}/cancel", tok(f"thief-{RUN}"))[0] == 403, "non-owner cancel -> 403")
+    s, js, _ = api.call("POST", "/shows/%s/reserve" % show5, tok(f"spoofer-{RUN}"), {"seats": ["A2"], "idempotency_key": "sp", "user_id": "someone-else"})
+    ALL.append((s, js))
+    check(s == 201 and js["user_id"] == f"spoofer-{RUN}", "spoofed user_id in body ignored")
+    check(api.call("POST", f"/reservations/{rid}/cancel", tok(f"own-{RUN}"))[0] == 200, "owner cancel -> 200")
+    check(reserve(show5, f"rebooker-{RUN}", ["A1"], "rb")[0] == 201, "released seat is re-bookable")
+    api.call("POST", f"/reservations/{rid}/cancel", tok(f"own-{RUN}"))
+    st = {x["seat"]: x["status"] for x in api.call("GET", f"/shows/{show5}")[1]["seats"]}
+    check(st["A1"] == "confirmed", "stale cancel did not resurrect seat confirmed to someone else")
+
+    # 6. metrics reconcile
+    print("\n== 6. metrics reconciliation (assumes no other traffic hit the service meanwhile)")
+    time.sleep(0.6)
+    m1 = metrics()
+    obs = tally(ALL)
+    dc = m1.get("reservations_confirmed_total", 0) - m0.get("reservations_confirmed_total", 0)
+    check(dc == obs["201 confirmed"], f"confirmed counter delta ({dc:.0f}) == observed 201s ({obs['201 confirmed']})")
+    for r, key in [("seat_taken", "409 seat_taken"), ("per_user_limit", "409 per_user_limit"), ("idempotent_replay", "200 idempotent-replay"),
+                   ("idempotency_conflict", "409 idempotency_conflict"), ("contention", "409 contention"), ("invalid_seat", "400 invalid_seat")]:
+        dm = m1.get("reservations_declined_total:" + r, 0) - m0.get("reservations_declined_total:" + r, 0)
+        check(dm == obs[key], f"declined[{r}] delta ({dm:.0f}) == observed ({obs[key]})")
+    g = api.call("GET", "/actuator/prometheus")[2]
+    mm = re.search(r'seats_available\{show_id="%s"[^}]*\}\s+([0-9.]+)' % show2, g)
+    check(mm and float(mm.group(1)) == final["available"], f"seats_available gauge for stampede show == API ({mm.group(1) if mm else None})")
+
+    print("\n== SUMMARY")
+    print("   overall outcome distribution:", dict(tally(ALL)))
+    if fails:
+        print(f"   {len(fails)} CHECK(S) FAILED"); sys.exit(1)
+    print("   ALL CHECKS PASSED")
 
 
 if __name__ == "__main__":
