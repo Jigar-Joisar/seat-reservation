@@ -14,7 +14,7 @@ make test                           # integration tests (storms, limits, idempot
 make burst URL=http://localhost:8080   # or: ./burst.sh https://<live-url>
 ```
 
-Env: `PORT`, `JWT_SECRET`, `ADMIN_SECRET`, `PER_USER_LIMIT` (default 4), `DATABASE_URL` (JDBC URL), `DB_POOL_SIZE`.
+Env: `PORT`, `JWT_SECRET`, `ADMIN_SECRET`, `PER_USER_LIMIT` (default 4), `DATABASE_URL` (JDBC URL), `DB_POOL_SIZE`, `HOLD_TTL_SECONDS`, `HOLD_SWEEP_MS`.
 Defaults for `JWT_SECRET`/`ADMIN_SECRET` are dev-only; set both in any deployment.
 
 ## Auth (demo issuer)
@@ -32,6 +32,8 @@ Send `Authorization: Bearer <token>`. Identity is **only** the token subject; a 
 | `POST /shows` (admin) | `{name, seats[], price_paise, per_user_limit?}` -> 201, all seats `available`. Duplicate/invalid seats -> 400. |
 | `GET /shows/{id}` | per-seat status + `available/held/confirmed/total_seats` (also under `counts`). Derived from one query, so the invariant holds in every response. |
 | `POST /shows/{id}/reserve` | body `{seats[], idempotency_key}` or header `Idempotency-Key`. **201** first time, **200** + `Idempotent-Replay: true` for a retry. Declines are **409** with `error` = `seat_taken` \| `per_user_limit` \| `idempotency_conflict` \| `contention`; unknown seat 400; unknown show 404. |
+| `POST /shows/{id}/hold` | same body/rules as reserve, but seats go `held` for `HOLD_TTL_SECONDS` (default 300); 201 `{status:"held", expires_at}`. Counts toward the per-user limit. |
+| `POST /reservations/{id}/confirm` | owner only; `held` -> `confirmed` while the hold is alive (idempotent); 409 `hold_expired` otherwise. |
 | `POST /reservations/{id}/cancel` | owner only (403 otherwise), idempotent, releases the seats. |
 | `GET /reservations/{id}` | owner only. |
 | `GET /health/live`, `GET /health/ready` | readiness runs `SELECT 1` on a dedicated pool; 503 if the DB is unreachable. |
@@ -40,11 +42,11 @@ Send `Authorization: Bearer <token>`. Identity is **only** the token subject; a 
 Reserve response (201): `{reservation_id, show_id, user_id, seats, amount_paise, status:"confirmed"}`. Money is integer paise.
 
 **Multi-seat policy: all-or-nothing.** If any requested seat is taken, nothing is held and the response is 409 `seat_taken`.
-**Release model: explicit cancel** (no timed holds; a reservation is confirmed immediately).
+**Release model:** `reserve` confirms immediately and can be cancelled; the optional `hold` flow adds a TTL: an expiry sweeper (every `HOLD_SWEEP_MS`, default 5s) returns unconfirmed holds to `available`. Cancel works on held or confirmed reservations.
 
 ## Metrics
-`reservations_confirmed_total`, `reservations_declined_total{reason=seat_taken|per_user_limit|idempotent_replay|idempotency_conflict|contention|invalid_seat}`,
-`reservations_cancelled_total`, `reservation_duration_seconds`, gauges `seats_available|held|confirmed{show_id}` and `seats_*_total`.
+`reservations_confirmed_total`, `reservations_declined_total{reason=seat_taken|per_user_limit|idempotent_replay|idempotency_conflict|contention|invalid_seat|hold_expired}`,
+`reservations_held_total`, `reservations_expired_total`, `reservations_cancelled_total`, `reservation_duration_seconds`, gauges `seats_available|held|confirmed{show_id}` and `seats_*_total`.
 `burst.py` asserts each counter delta equals what the client observed, and that the gauge equals `GET /shows`.
 
 ## Logs

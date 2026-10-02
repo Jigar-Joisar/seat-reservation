@@ -20,5 +20,5 @@ public final class Dtos {
                            Counts counts, List<SeatView> seats) {}
 
     public record ReservationView(String reservationId, String showId, String userId, List<String> seats,
-                                  long amountPaise, String status) {}
+                                  long amountPaise, String status, java.time.Instant expiresAt) {}
 }

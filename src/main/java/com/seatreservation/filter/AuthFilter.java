@@ -19,7 +19,7 @@ import java.util.regex.Pattern;
 @Order(Ordered.HIGHEST_PRECEDENCE + 20)
 public class AuthFilter extends OncePerRequestFilter {
     public static final String USER_ATTR = "auth.user";
-    private static final Pattern RESERVE = Pattern.compile("^/shows/[^/]+/reserve/?$");
+    private static final Pattern RESERVE = Pattern.compile("^/shows/[^/]+/(reserve|hold)/?$");
 
     private final JwtService jwt;
 

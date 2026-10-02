@@ -6,3 +6,6 @@ management:
     metrics:
       export:
         enabled: true
+app:
+  hold-ttl-seconds: 2
+  hold-sweep-ms: 300

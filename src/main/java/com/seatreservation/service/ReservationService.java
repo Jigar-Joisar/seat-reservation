@@ -33,18 +33,23 @@ public class ReservationService {
     private final TransactionTemplate tx;
     private final ReservationMetrics metrics;
 
-    public ReservationService(JdbcTemplate jdbc, TransactionTemplate tx, ReservationMetrics metrics) {
+    private final long holdTtlSeconds;
+
+    public ReservationService(JdbcTemplate jdbc, TransactionTemplate tx, ReservationMetrics metrics,
+                              @org.springframework.beans.factory.annotation.Value("${app.hold-ttl-seconds}") long holdTtlSeconds) {
         this.jdbc = jdbc;
         this.tx = tx;
         this.metrics = metrics;
+        this.holdTtlSeconds = holdTtlSeconds;
     }
 
-    public Result reserve(String showId, String userId, List<String> requested, String idemKey) {
+    public Result reserve(String showId, String userId, List<String> requested, String idemKey, boolean hold) {
         Timer.Sample sample = Timer.start();
         try {
             List<String> seats = validate(requested, idemKey);
-            Result r = doReserve(showId, userId, seats, idemKey);
+            Result r = doReserve(showId, userId, seats, idemKey, hold);
             if (r.replay()) metrics.declined("idempotent_replay");
+            else if (hold) metrics.held();
             else metrics.confirmed();
             return r;
         } catch (ApiException e) {
@@ -70,7 +75,7 @@ public class ReservationService {
         return new ArrayList<>(sorted);
     }
 
-    private Result doReserve(String showId, String userId, List<String> seats, String idemKey) {
+    private Result doReserve(String showId, String userId, List<String> seats, String idemKey, boolean hold) {
         Optional<Result> fast = replayIfExists(userId, idemKey, seats);
         if (fast.isPresent()) return fast.get();
 
@@ -97,9 +102,11 @@ public class ReservationService {
                             Map.of("limit", limit, "currently_held", held, "requested", seats.size()));
                 }
                 String reservationId = UUID.randomUUID().toString();
+                String state = hold ? "held" : "confirmed";
+                Instant expiresAt = hold ? Instant.now().plusSeconds(holdTtlSeconds) : null;
                 for (String seat : seats) {
-                    int n = jdbc.update("UPDATE seats SET status = 'confirmed', user_id = ?, reservation_id = ? "
-                            + "WHERE show_id = ? AND seat_number = ? AND status = 'available'", userId, reservationId, showId, seat);
+                    int n = jdbc.update("UPDATE seats SET status = ?, user_id = ?, reservation_id = ? "
+                            + "WHERE show_id = ? AND seat_number = ? AND status = 'available'", state, userId, reservationId, showId, seat);
                     if (n == 0) {
                         boolean exists = Boolean.TRUE.equals(jdbc.queryForObject(
                                 "SELECT COUNT(*) > 0 FROM seats WHERE show_id = ? AND seat_number = ?", Boolean.class, showId, seat));
@@ -108,12 +115,13 @@ public class ReservationService {
                     }
                 }
                 long amount = Math.multiplyExact(price, (long) seats.size());
-                jdbc.update("INSERT INTO reservations (id, show_id, user_id, seats, seat_count, amount_paise, status, idempotency_key, created_at) "
-                                + "VALUES (?,?,?,?,?,?,'confirmed',?,?)",
-                        reservationId, showId, userId, String.join(",", seats), seats.size(), amount, idemKey, Timestamp.from(Instant.now()));
+                jdbc.update("INSERT INTO reservations (id, show_id, user_id, seats, seat_count, amount_paise, status, idempotency_key, created_at, expires_at) "
+                                + "VALUES (?,?,?,?,?,?,?,?,?,?)",
+                        reservationId, showId, userId, String.join(",", seats), seats.size(), amount, state, idemKey,
+                        Timestamp.from(Instant.now()), expiresAt == null ? null : Timestamp.from(expiresAt));
                 jdbc.update("UPDATE user_show_allocations SET seats_held = seats_held + ? WHERE show_id = ? AND user_id = ?", seats.size(), showId, userId);
-                log.info("reservation confirmed", kv("reservation_id", reservationId), kv("show_id", showId), kv("user_id", userId), kv("seats", seats));
-                return new Result(new ReservationView(reservationId, showId, userId, seats, amount, "confirmed"), false);
+                log.info("reservation " + state, kv("reservation_id", reservationId), kv("show_id", showId), kv("user_id", userId), kv("seats", seats));
+                return new Result(new ReservationView(reservationId, showId, userId, seats, amount, state, expiresAt), false);
             });
         } catch (DuplicateKeyException e) {
             return replayIfExists(userId, idemKey, seats).orElseThrow(() -> e);
@@ -121,41 +129,100 @@ public class ReservationService {
     }
 
     private Optional<Result> replayIfExists(String userId, String idemKey, List<String> seats) {
-        var rows = jdbc.query("SELECT id, show_id, seats, amount_paise, status FROM reservations WHERE user_id = ? AND idempotency_key = ?",
-                (rs, i) -> new Object[]{rs.getString(1), rs.getString(2), rs.getString(3), rs.getLong(4), rs.getString(5)}, userId, idemKey);
+        var rows = jdbc.query("SELECT id, show_id, seats, amount_paise, status, expires_at FROM reservations WHERE user_id = ? AND idempotency_key = ?",
+                (rs, i) -> new Object[]{rs.getString(1), rs.getString(2), rs.getString(3), rs.getLong(4), rs.getString(5), rs.getTimestamp(6)}, userId, idemKey);
         if (rows.isEmpty()) return Optional.empty();
         Object[] r = rows.get(0);
         List<String> existing = Arrays.asList(((String) r[2]).split(","));
         if (!existing.equals(seats)) {
             throw new ApiException(HttpStatus.CONFLICT, "idempotency_conflict", "Idempotency key was already used with a different request body");
         }
-        return Optional.of(new Result(new ReservationView((String) r[0], (String) r[1], userId, existing, (Long) r[3], (String) r[4]), true));
+        return Optional.of(new Result(new ReservationView((String) r[0], (String) r[1], userId, existing, (Long) r[3], (String) r[4], r[5] == null ? null : ((Timestamp) r[5]).toInstant()), true));
     }
 
     public ReservationView get(String reservationId, String userId) {
-        var rows = jdbc.query("SELECT id, show_id, user_id, seats, amount_paise, status FROM reservations WHERE id = ?",
+        var rows = jdbc.query("SELECT id, show_id, user_id, seats, amount_paise, status, expires_at FROM reservations WHERE id = ?",
                 (rs, i) -> new ReservationView(rs.getString(1), rs.getString(2), rs.getString(3),
-                        Arrays.asList(rs.getString(4).split(",")), rs.getLong(5), rs.getString(6)), reservationId);
+                        Arrays.asList(rs.getString(4).split(",")), rs.getLong(5), rs.getString(6),
+                        rs.getTimestamp(7) == null ? null : rs.getTimestamp(7).toInstant()), reservationId);
         if (rows.isEmpty()) throw new ApiException(HttpStatus.NOT_FOUND, "reservation_not_found", "Reservation not found");
         if (!rows.get(0).userId().equals(userId)) throw new ApiException(HttpStatus.FORBIDDEN, "forbidden", "Not your reservation");
         return rows.get(0);
+    }
+
+    private ReservationView with(ReservationView v, String status) {
+        return new ReservationView(v.reservationId(), v.showId(), v.userId(), v.seats(), v.amountPaise(), status, v.expiresAt());
     }
 
     /** Owner-only, idempotent. Seats are released only if they still belong to THIS reservation. */
     public ReservationView cancel(String reservationId, String userId) {
         ReservationView current = get(reservationId, userId);
         return tx.execute(st -> {
-            jdbc.queryForObject("SELECT seats_held FROM user_show_allocations WHERE show_id = ? AND user_id = ? FOR UPDATE",
-                    Integer.class, current.showId(), userId);
+            lockAllocation(current.showId(), userId);
             String status = jdbc.queryForObject("SELECT status FROM reservations WHERE id = ? FOR UPDATE", String.class, reservationId);
-            if ("cancelled".equals(status)) return new ReservationView(current.reservationId(), current.showId(), userId, current.seats(), current.amountPaise(), "cancelled");
+            if (!"held".equals(status) && !"confirmed".equals(status)) return with(current, status);
             int released = jdbc.update("UPDATE seats SET status = 'available', user_id = NULL, reservation_id = NULL "
-                    + "WHERE reservation_id = ? AND status = 'confirmed'", reservationId);
+                    + "WHERE reservation_id = ? AND status IN ('held','confirmed')", reservationId);
             jdbc.update("UPDATE reservations SET status = 'cancelled' WHERE id = ?", reservationId);
             jdbc.update("UPDATE user_show_allocations SET seats_held = seats_held - ? WHERE show_id = ? AND user_id = ?", released, current.showId(), userId);
             metrics.cancelled();
             log.info("reservation cancelled", kv("reservation_id", reservationId), kv("show_id", current.showId()), kv("user_id", userId), kv("released", released));
-            return new ReservationView(current.reservationId(), current.showId(), userId, current.seats(), current.amountPaise(), "cancelled");
+            return with(current, "cancelled");
         });
+    }
+
+    /** Owner-only. held -> confirmed while the hold is alive; idempotent for an already confirmed reservation. */
+    public ReservationView confirm(String reservationId, String userId) {
+        ReservationView current = get(reservationId, userId);
+        try {
+            return tx.execute(st -> {
+                lockAllocation(current.showId(), userId);
+                var row = jdbc.queryForObject("SELECT status, expires_at FROM reservations WHERE id = ? FOR UPDATE",
+                        (rs, i) -> new Object[]{rs.getString(1), rs.getTimestamp(2)}, reservationId);
+                String status = (String) row[0];
+                if ("confirmed".equals(status)) return with(current, "confirmed");
+                if (!"held".equals(status)) throw new ApiException(HttpStatus.CONFLICT, "hold_expired", "Reservation is " + status + " and cannot be confirmed");
+                if (row[1] != null && ((Timestamp) row[1]).toInstant().isBefore(Instant.now())) {
+                    throw new ApiException(HttpStatus.CONFLICT, "hold_expired", "Hold has expired");
+                }
+                int n = jdbc.update("UPDATE seats SET status = 'confirmed' WHERE reservation_id = ? AND status = 'held'", reservationId);
+                if (n != current.seats().size()) throw new IllegalStateException("hold lost seats: " + n + " of " + current.seats().size());
+                jdbc.update("UPDATE reservations SET status = 'confirmed', expires_at = NULL WHERE id = ?", reservationId);
+                metrics.confirmed();
+                log.info("reservation confirmed", kv("reservation_id", reservationId), kv("show_id", current.showId()), kv("user_id", userId));
+                return new ReservationView(current.reservationId(), current.showId(), userId, current.seats(), current.amountPaise(), "confirmed", null);
+            });
+        } catch (ApiException e) {
+            if (e.error().equals("hold_expired")) metrics.declined("hold_expired");
+            throw e;
+        }
+    }
+
+    private void lockAllocation(String showId, String userId) {
+        jdbc.queryForObject("SELECT seats_held FROM user_show_allocations WHERE show_id = ? AND user_id = ? FOR UPDATE", Integer.class, showId, userId);
+    }
+
+    /** Expires one overdue hold. Lock order matches the other paths: allocation -> reservation -> seats. */
+    public boolean expireIfOverdue(String reservationId, String showId, String userId) {
+        Boolean done = tx.execute(st -> {
+            lockAllocation(showId, userId);
+            var row = jdbc.query("SELECT status, expires_at FROM reservations WHERE id = ? FOR UPDATE",
+                    (rs, i) -> new Object[]{rs.getString(1), rs.getTimestamp(2)}, reservationId);
+            if (row.isEmpty() || !"held".equals(row.get(0)[0]) || row.get(0)[1] == null
+                    || !((Timestamp) row.get(0)[1]).toInstant().isBefore(Instant.now())) return false;
+            int released = jdbc.update("UPDATE seats SET status = 'available', user_id = NULL, reservation_id = NULL "
+                    + "WHERE reservation_id = ? AND status = 'held'", reservationId);
+            jdbc.update("UPDATE reservations SET status = 'expired' WHERE id = ?", reservationId);
+            jdbc.update("UPDATE user_show_allocations SET seats_held = seats_held - ? WHERE show_id = ? AND user_id = ?", released, showId, userId);
+            metrics.expired();
+            log.info("hold expired", kv("reservation_id", reservationId), kv("show_id", showId), kv("user_id", userId), kv("released", released));
+            return true;
+        });
+        return Boolean.TRUE.equals(done);
+    }
+
+    public List<String[]> overdueHolds(int limit) {
+        return jdbc.query("SELECT id, show_id, user_id FROM reservations WHERE status = 'held' AND expires_at < ? LIMIT ?",
+                (rs, i) -> new String[]{rs.getString(1), rs.getString(2), rs.getString(3)}, Timestamp.from(Instant.now()), limit);
     }
 }

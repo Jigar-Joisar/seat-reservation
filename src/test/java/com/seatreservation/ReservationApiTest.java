@@ -186,4 +186,52 @@ class ReservationApiTest {
             assertTrue(body.contains("seats_available{show_id=\"" + id + "\",} 1.0"), body.lines().filter(l -> l.startsWith("seats_")).collect(Collectors.joining("\n")));
         } catch (Exception e) { throw new RuntimeException(e); }
     }
+
+    Resp hold(String show, String tok, String key, String... seats) {
+        return call("POST", "/shows/" + show + "/hold", tok, Map.of("seats", List.of(seats), "idempotency_key", key));
+    }
+
+    @Test void holdThenConfirmAndOwnership() {
+        String id = show(3, null);
+        Resp h = hold(id, token("h1"), "hk", "A1");
+        assertEquals(201, h.status());
+        assertEquals("held", h.body().get("status").asText());
+        assertNotNull(h.body().get("expires_at"));
+        String rid = h.body().get("reservation_id").asText();
+        assertEquals(1, call("GET", "/shows/" + id, null, null).body().get("held").asInt());
+        assertEquals(409, reserve(id, token("h2"), "x", "A1").status());
+        assertEquals(403, call("POST", "/reservations/" + rid + "/confirm", token("h2"), null).status());
+        assertEquals("confirmed", call("POST", "/reservations/" + rid + "/confirm", token("h1"), null).body().get("status").asText());
+        assertEquals(200, call("POST", "/reservations/" + rid + "/confirm", token("h1"), null).status());
+        assertEquals(1, call("GET", "/shows/" + id, null, null).body().get("confirmed").asInt());
+        assertInvariant(id);
+    }
+
+    @Test void holdStormExactlyOneWinner() throws Exception {
+        String id = show(5, null);
+        List<Resp> rs = parallel(200, i -> hold(id, token("hs" + i), "k" + i, "A1"));
+        assertEquals(1, rs.stream().filter(r -> r.status() == 201).count());
+        assertTrue(rs.stream().noneMatch(r -> r.status() >= 500));
+        assertInvariant(id);
+    }
+
+    @Test void expiredHoldReturnsSeatAndConfirmedSeatSurvives() throws Exception {
+        String id = show(3, 1);
+        Resp h = hold(id, token("e1"), "e", "A1");
+        String rid = h.body().get("reservation_id").asText();
+        Resp keep = hold(id, token("e2"), "e", "A2");
+        String keepId = keep.body().get("reservation_id").asText();
+        assertEquals(200, call("POST", "/reservations/" + keepId + "/confirm", token("e2"), null).status());
+        Thread.sleep(3500);
+        JsonNode s = call("GET", "/shows/" + id, null, null).body();
+        assertEquals(2, s.get("available").asInt());
+        assertEquals(1, s.get("confirmed").asInt());
+        assertEquals(0, s.get("held").asInt());
+        assertEquals(409, call("POST", "/reservations/" + rid + "/confirm", token("e1"), null).status());
+        assertEquals(201, reserve(id, token("e3"), "e", "A1").status());
+        assertEquals(201, hold(id, token("e1"), "e-again", "A3").status());
+        call("POST", "/reservations/" + rid + "/cancel", token("e1"), null);
+        assertEquals("confirmed", call("GET", "/shows/" + id, null, null).body().get("seats").get(0).get("status").asText());
+        assertInvariant(id);
+    }
 }

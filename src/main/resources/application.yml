@@ -47,6 +47,8 @@ app:
   admin-secret: ${ADMIN_SECRET:dev-admin-secret}
   per-user-limit: ${PER_USER_LIMIT:4}
   max-seats-per-show: 100000
+  hold-ttl-seconds: ${HOLD_TTL_SECONDS:300}
+  hold-sweep-ms: ${HOLD_SWEEP_MS:5000}
 
 logging:
   level:

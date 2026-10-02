@@ -214,13 +214,33 @@ def main():
     st = {x["seat"]: x["status"] for x in api.call("GET", f"/shows/{show5}")[1]["seats"]}
     check(st["A1"] == "confirmed", "stale cancel did not resurrect seat confirmed to someone else")
 
+    # 5b. holds
+    print("\n== 5b. timed holds: storm, confirm, ownership")
+    show6 = new_show(5)
+    hu = [f"hold-{RUN}-{i}" for i in range(200)]
+    list(pool.map(tok, hu))
+    def hold(u):
+        s, js, _ = api.call("POST", f"/shows/{show6}/hold", tok(u), {"seats": ["A1"], "idempotency_key": "h-" + u})
+        if s != 201: ALL.append((s, js))  # declines count toward metrics; 201 holds are held, not confirmed
+        return s, js
+    hr = list(pool.map(hold, hu))
+    d = tally(hr); print("  ", dict(d))
+    check(sum(1 for s, _ in hr if s == 201) == 1 and five_xx(d) == 0, "200 users hold one seat -> exactly one 201, zero 5xx")
+    won = next(js for s, js in hr if s == 201)
+    check(won["status"] == "held" and "expires_at" in won, "hold returns status=held with expires_at")
+    other = next(u for (s, _), u in zip(hr, hu) if s != 201)
+    check(api.call("POST", f"/reservations/{won['reservation_id']}/confirm", tok(other))[0] == 403, "non-owner confirm -> 403")
+    check(api.call("POST", f"/reservations/{won['reservation_id']}/confirm", tok(won["user_id"]))[1].get("status") == "confirmed", "owner confirm -> confirmed")
+    sh = api.call("GET", f"/shows/{show6}")[1]
+    check(sh["confirmed"] == 1 and sh["available"] + sh["held"] + sh["confirmed"] == sh["total_seats"], "show state consistent after hold+confirm")
+
     # 6. metrics reconcile
     print("\n== 6. metrics reconciliation (assumes no other traffic hit the service meanwhile)")
     time.sleep(0.6)
     m1 = metrics()
     obs = tally(ALL)
     dc = m1.get("reservations_confirmed_total", 0) - m0.get("reservations_confirmed_total", 0)
-    check(dc == obs["201 confirmed"], f"confirmed counter delta ({dc:.0f}) == observed 201s ({obs['201 confirmed']})")
+    check(dc == obs["201 confirmed"] + 1, f"confirmed counter delta ({dc:.0f}) == observed reserve 201s + 1 confirmed hold ({obs['201 confirmed']}+1)")
     for r, key in [("seat_taken", "409 seat_taken"), ("per_user_limit", "409 per_user_limit"), ("idempotent_replay", "200 idempotent-replay"),
                    ("idempotency_conflict", "409 idempotency_conflict"), ("contention", "409 contention"), ("invalid_seat", "400 invalid_seat")]:
         dm = m1.get("reservations_declined_total:" + r, 0) - m0.get("reservations_declined_total:" + r, 0)

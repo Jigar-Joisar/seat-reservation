@@ -32,3 +32,4 @@ CREATE TABLE IF NOT EXISTS user_show_allocations (
     seats_held INT NOT NULL,
     PRIMARY KEY (show_id, user_id)
 );
+ALTER TABLE reservations ADD COLUMN IF NOT EXISTS expires_at TIMESTAMP;

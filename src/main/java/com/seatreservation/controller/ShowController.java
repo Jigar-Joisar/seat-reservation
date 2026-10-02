@@ -32,15 +32,31 @@ public class ShowController {
     public ResponseEntity<ReservationView> reserve(@PathVariable String id, @RequestBody ReserveRequest req,
                                                    @RequestHeader(value = "Idempotency-Key", required = false) String headerKey,
                                                    @RequestAttribute(AuthFilter.USER_ATTR) String userId) {
+        return place(id, req, headerKey, userId, false);
+    }
+
+    @PostMapping("/shows/{id}/hold")
+    public ResponseEntity<ReservationView> hold(@PathVariable String id, @RequestBody ReserveRequest req,
+                                                @RequestHeader(value = "Idempotency-Key", required = false) String headerKey,
+                                                @RequestAttribute(AuthFilter.USER_ATTR) String userId) {
+        return place(id, req, headerKey, userId, true);
+    }
+
+    private ResponseEntity<ReservationView> place(String id, ReserveRequest req, String headerKey, String userId, boolean hold) {
         String key = req.idempotencyKey();
         if (headerKey != null && key != null && !headerKey.equals(key)) {
             throw com.seatreservation.api.ApiException.badRequest("Idempotency-Key header and body idempotency_key differ");
         }
         if (key == null) key = headerKey;
-        ReservationService.Result r = reservations.reserve(id, userId, req.seats(), key);
+        ReservationService.Result r = reservations.reserve(id, userId, req.seats(), key, hold);
         return r.replay()
                 ? ResponseEntity.ok().header("Idempotent-Replay", "true").body(r.view())
                 : ResponseEntity.status(HttpStatus.CREATED).body(r.view());
+    }
+
+    @PostMapping("/reservations/{id}/confirm")
+    public ReservationView confirm(@PathVariable String id, @RequestAttribute(AuthFilter.USER_ATTR) String userId) {
+        return reservations.confirm(id, userId);
     }
 
     @GetMapping("/reservations/{id}")

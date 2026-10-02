@@ -15,13 +15,15 @@ import java.util.function.ToDoubleFunction;
 @Component
 public class ReservationMetrics {
     public static final List<String> REASONS = List.of("seat_taken", "per_user_limit", "idempotent_replay",
-            "idempotency_conflict", "contention", "invalid_seat");
+            "idempotency_conflict", "contention", "invalid_seat", "hold_expired");
 
     public record Stat(long available, long held, long confirmed) {}
 
     private final MeterRegistry registry;
     private final Counter confirmed;
     private final Counter cancelled;
+    private final Counter held;
+    private final Counter expired;
     private final Map<String, Counter> declined = new ConcurrentHashMap<>();
     private final Set<String> registeredShows = ConcurrentHashMap.newKeySet();
     private final Timer reserveTimer;
@@ -31,6 +33,8 @@ public class ReservationMetrics {
         this.registry = registry;
         this.stats = stats;
         this.confirmed = Counter.builder("reservations.confirmed").description("Reservations confirmed").register(registry);
+        this.held = Counter.builder("reservations.held").description("Holds created").register(registry);
+        this.expired = Counter.builder("reservations.expired").description("Holds expired").register(registry);
         this.cancelled = Counter.builder("reservations.cancelled").description("Reservations cancelled").register(registry);
         for (String r : REASONS) declined.put(r, Counter.builder("reservations.declined").tag("reason", r).register(registry));
         this.reserveTimer = Timer.builder("reservation.duration").publishPercentileHistogram().register(registry);
@@ -40,6 +44,8 @@ public class ReservationMetrics {
     }
 
     public void confirmed() { confirmed.increment(); }
+    public void held() { held.increment(); }
+    public void expired() { expired.increment(); }
     public void cancelled() { cancelled.increment(); }
     public void declined(String reason) { declined.get(reason).increment(); }
     public Timer reserveTimer() { return reserveTimer; }
