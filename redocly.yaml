@@ -1,0 +1,5 @@
+extends:
+  - recommended
+rules:
+  # health/metrics endpoints have no client-error responses worth documenting
+  operation-4xx-response: off
