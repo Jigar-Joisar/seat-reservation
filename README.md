@@ -3,7 +3,7 @@
 JSON HTTP API that sells assigned seats and never double-sells, over-allocates a user, or double-charges a retry.
 Java 17, Spring Boot 3.2, JDBC + H2 (embedded, file-backed), JWT auth, Micrometer/Prometheus, JSON logs.
 
-**Live URL:** _<fill in after deploy>_  ·  **Metrics:** `<URL>/actuator/prometheus`  ·  **Logs:** _<platform log URL / recording>_
+**Repo:** https://github.com/Jigar-Joisar/seat-reservation  ·  **Live URL:** _<fill in after deploy>_  ·  **Metrics:** `<URL>/actuator/prometheus`  ·  **Logs:** _<platform log URL / recording>_
 
 ## Run
 
