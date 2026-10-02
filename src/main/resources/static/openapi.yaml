@@ -1,0 +1,197 @@
+openapi: 3.0.3
+info:
+  title: Seat Reservation API
+  version: 1.0.0
+  description: |
+    **How to try it**
+    1. `POST /auth/token` with `{"user_id":"alice"}` -> copy `token`. For an admin token also send `admin_secret` (dev default `dev-admin-secret`).
+    2. Click **Authorize** (top right) and paste the token (without the word Bearer).
+    3. As admin: `POST /shows`. As any user: `reserve` / `hold`, then `confirm` / `cancel`. Use a new `idempotency_key` per order.
+
+    Declines are HTTP 409 with `{error, message}`; the service must never return 5xx for domain outcomes.
+servers:
+  - url: /
+paths:
+  /auth/token:
+    post:
+      tags: [Auth]
+      summary: Mint a JWT (demo issuer). Add admin_secret for an admin token.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TokenRequest' }
+            examples:
+              user: { value: { user_id: alice } }
+              admin: { value: { user_id: ops, admin_secret: dev-admin-secret } }
+      responses:
+        '200': { description: Token issued, content: { application/json: { schema: { $ref: '#/components/schemas/TokenResponse' } } } }
+        '400': { $ref: '#/components/responses/Error' }
+        '403': { description: Wrong admin secret, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+  /shows:
+    post:
+      tags: [Shows]
+      summary: Create a show (admin only)
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateShow' }
+            example: { name: friday-night, seats: [A1, A2, A3, A4, A5, A6], price_paise: 25000, per_user_limit: 4 }
+      responses:
+        '201': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/Show' } } } }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+  /shows/{id}:
+    get:
+      tags: [Shows]
+      summary: Seat map and counts (available + held + confirmed == total_seats)
+      parameters: [{ $ref: '#/components/parameters/ShowId' }]
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Show' } } } }
+        '404': { $ref: '#/components/responses/Error' }
+  /shows/{id}/reserve:
+    post:
+      tags: [Reservations]
+      summary: Book seats, confirmed immediately (all-or-nothing)
+      description: 201 on first call; 200 with `Idempotent-Replay` header on a retry of the same key and seats. Same key with different seats -> 409.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { $ref: '#/components/parameters/ShowId' }
+        - { $ref: '#/components/parameters/IdemHeader' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ReserveRequest' }
+            example: { seats: [A1], idempotency_key: order-1 }
+      responses:
+        '201': { description: Confirmed, content: { application/json: { schema: { $ref: '#/components/schemas/Reservation' } } } }
+        '200': { description: Idempotent replay of an earlier request, content: { application/json: { schema: { $ref: '#/components/schemas/Reservation' } } } }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { description: "seat_taken | per_user_limit | idempotency_conflict | contention", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+  /shows/{id}/hold:
+    post:
+      tags: [Reservations]
+      summary: Hold seats for a limited time (then confirm, cancel, or let expire)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { $ref: '#/components/parameters/ShowId' }
+        - { $ref: '#/components/parameters/IdemHeader' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ReserveRequest' }
+            example: { seats: [A2], idempotency_key: hold-1 }
+      responses:
+        '201': { description: Held (see expires_at), content: { application/json: { schema: { $ref: '#/components/schemas/Reservation' } } } }
+        '200': { description: Idempotent replay, content: { application/json: { schema: { $ref: '#/components/schemas/Reservation' } } } }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '409': { description: "seat_taken | per_user_limit | idempotency_conflict | contention", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+  /reservations/{rid}:
+    get:
+      tags: [Reservations]
+      summary: View your reservation (owner only)
+      security: [{ bearerAuth: [] }]
+      parameters: [{ $ref: '#/components/parameters/ReservationId' }]
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Reservation' } } } }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+  /reservations/{rid}/confirm:
+    post:
+      tags: [Reservations]
+      summary: Confirm a hold (owner only, idempotent)
+      security: [{ bearerAuth: [] }]
+      parameters: [{ $ref: '#/components/parameters/ReservationId' }]
+      responses:
+        '200': { description: Confirmed, content: { application/json: { schema: { $ref: '#/components/schemas/Reservation' } } } }
+        '403': { $ref: '#/components/responses/Error' }
+        '409': { description: hold_expired, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+  /reservations/{rid}/cancel:
+    post:
+      tags: [Reservations]
+      summary: Cancel and release seats (owner only, idempotent)
+      security: [{ bearerAuth: [] }]
+      parameters: [{ $ref: '#/components/parameters/ReservationId' }]
+      responses:
+        '200': { description: Cancelled, content: { application/json: { schema: { $ref: '#/components/schemas/Reservation' } } } }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+  /health/live:
+    get: { tags: [Ops], summary: Liveness, responses: { '200': { description: UP } } }
+  /health/ready:
+    get:
+      tags: [Ops]
+      summary: Readiness (checks the database; 503 when it is unreachable)
+      responses: { '200': { description: UP }, '503': { description: DOWN } }
+  /actuator/prometheus:
+    get: { tags: [Ops], summary: Prometheus metrics, responses: { '200': { description: text exposition format } } }
+components:
+  securitySchemes:
+    bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
+  parameters:
+    ShowId: { name: id, in: path, required: true, schema: { type: string } }
+    ReservationId: { name: rid, in: path, required: true, schema: { type: string } }
+    IdemHeader: { name: Idempotency-Key, in: header, required: false, schema: { type: string }, description: Alternative to idempotency_key in the body (must match if both are sent) }
+  responses:
+    Error: { description: Error, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+  schemas:
+    TokenRequest:
+      type: object
+      required: [user_id]
+      properties: { user_id: { type: string, example: alice }, admin_secret: { type: string } }
+    TokenResponse:
+      type: object
+      properties: { token: { type: string }, user_id: { type: string }, role: { type: string, enum: [user, admin] } }
+    CreateShow:
+      type: object
+      required: [name, seats, price_paise]
+      properties:
+        name: { type: string }
+        seats: { type: array, items: { type: string } }
+        price_paise: { type: integer, format: int64 }
+        per_user_limit: { type: integer, default: 4 }
+    ReserveRequest:
+      type: object
+      required: [seats]
+      properties:
+        seats: { type: array, items: { type: string } }
+        idempotency_key: { type: string }
+    Show:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
+        price_paise: { type: integer, format: int64 }
+        per_user_limit: { type: integer }
+        available: { type: integer }
+        held: { type: integer }
+        confirmed: { type: integer }
+        total_seats: { type: integer }
+        counts: { type: object }
+        seats:
+          type: array
+          items:
+            type: object
+            properties: { seat: { type: string }, status: { type: string, enum: [available, held, confirmed] } }
+    Reservation:
+      type: object
+      properties:
+        reservation_id: { type: string }
+        show_id: { type: string }
+        user_id: { type: string }
+        seats: { type: array, items: { type: string } }
+        amount_paise: { type: integer, format: int64 }
+        status: { type: string, enum: [held, confirmed, cancelled, expired] }
+        expires_at: { type: string, format: date-time }
+    Error:
+      type: object
+      properties: { error: { type: string }, message: { type: string }, details: { type: object } }

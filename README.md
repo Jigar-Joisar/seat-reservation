@@ -17,6 +17,9 @@ make burst URL=http://localhost:8080   # or: ./burst.sh https://<live-url>
 Env: `PORT`, `JWT_SECRET`, `ADMIN_SECRET`, `PER_USER_LIMIT` (default 4), `DATABASE_URL` (JDBC URL), `DB_POOL_SIZE`, `HOLD_TTL_SECONDS`, `HOLD_SWEEP_MS`.
 Defaults for `JWT_SECRET`/`ADMIN_SECRET` are dev-only; set both in any deployment.
 
+## Try it in the browser
+Open the service root (`http://localhost:8080/`) for **Swagger UI** (static page + `openapi.yaml`, no extra dependency). Mint a token with `POST /auth/token`, click **Authorize**, paste it, and use *Try it out*.
+
 ## Auth (demo issuer)
 The challenge has no identity provider, so `POST /auth/token` mints JWTs:
 ```bash
