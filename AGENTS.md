@@ -33,6 +33,7 @@ Only one process may use `./data` at a time (H2 file lock).
 6. Transactions are READ_COMMITTED (Hikari setting). Do not switch to SERIALIZABLE; it causes lock storms on H2.
 7. Money is `long` paise; Jackson rejects floats (`accept-float-as-int: false`); price is capped so `price * seats` cannot overflow.
 8. Business outcomes must never be 5xx.
+9. Keep `WRITE_DELAY=0` in the default `DATABASE_URL`: with H2's default delay a crash can lose just-confirmed bookings.
 
 ## Conventions
 * JSON is snake_case (Jackson global strategy). DTOs are records in `api/Dtos`.

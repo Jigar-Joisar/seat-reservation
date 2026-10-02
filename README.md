@@ -52,7 +52,7 @@ Every setting has a default. Override with environment variables, a `.env` file 
 | `HOLD_TTL_SECONDS` | `300` | how long a `hold` lasts before the seats are released |
 | `HOLD_SWEEP_MS` | `5000` | how often expired holds are swept |
 | `DB_POOL_SIZE` | `32` | JDBC connection pool size |
-| `DATABASE_URL` | file-backed H2 in `./data` | JDBC URL |
+| `DATABASE_URL` | file-backed H2 in `./data` (`WRITE_DELAY=0` for crash durability) | JDBC URL |
 | `JAVA_OPTS` | `-XX:MaxRAMPercentage=75 -XX:+UseSerialGC` | JVM flags (`run.sh`) |
 | `FRESH_DB=1` | off | `run.sh` only: delete `./data` before starting |
 
@@ -156,6 +156,20 @@ Sanity check of the checker itself: removing the `AND status = 'available'` guar
 The `Dockerfile` is a multi-stage build (Maven, then a non-root JRE image with a readiness `HEALTHCHECK`). `render.yaml` is a Render blueprint (Docker web service, health check `/health/ready`, generated secrets); any Docker host works.
 
 Checklist: set `JWT_SECRET` and `ADMIN_SECRET`; the service listens on `$PORT`. Free tiers have an **ephemeral disk**, so H2 data resets on restart or redeploy (fine for load tests; point `DATABASE_URL` at a persistent volume to keep data). The service is single-instance by design (embedded database); see [WRITEUP.md](WRITEUP.md) for the Postgres migration path.
+
+## Restarts, crashes and cold starts
+
+Verified by killing the process with `kill -9` and restarting against the same database file:
+
+* **Startup**: ready in about 3 s on a laptop (schema is applied idempotently with `CREATE TABLE IF NOT EXISTS`, so starting on an existing database is safe). Readiness only turns 200 once the database answers.
+* **Durability**: the default JDBC URL uses `WRITE_DELAY=0`, so a committed reservation is flushed before the `201` is returned. With H2's default (500 ms delay) a hard crash could silently lose the last half second of confirmed bookings, i.e. tell a buyer they own a seat that is later sold again. Cost: about 20 % lower peak throughput in our test (about 820 vs 1030 req/s on a laptop), all burst checks still pass.
+* **Holds that expire while the service is down** are released by the sweeper right after startup; a confirm attempted in that window is rejected by the expiry timestamp even before the sweep runs.
+* **Idempotent retries after a restart** still return the original reservation (200), so a client that retries after a crash never double-books.
+* **Tokens** stay valid across restarts as long as `JWT_SECRET` is unchanged (set it explicitly; if it is not set the dev default is used).
+* **Metrics gauges** are re-registered for existing shows at startup (counters restart from zero, as usual for Prometheus).
+* **Graceful shutdown**: in-flight requests finish (`server.shutdown=graceful`).
+
+On hosting with an **ephemeral disk** (free tiers) a restart or redeploy starts with an empty database: the service comes up healthy but old shows and reservations are gone. Use a persistent volume (`DATABASE_URL=jdbc:h2:file:/data/seats;...`) or a managed database if state must survive. Free tiers may also sleep when idle; the first request after a sleep waits for the cold start, and `burst.py` retries readiness for about two minutes.
 
 ## Project layout
 

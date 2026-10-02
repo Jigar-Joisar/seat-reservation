@@ -25,6 +25,8 @@ Lock order is always allocation -> reservation -> seats (sorted), so none of the
 ## Consistency vs availability
 The database is the single source of truth and is CP: if it is unreachable, `/health/ready` returns 503 (checked on a separate 2-connection pool so a saturated request pool doesn't flap readiness) and requests fail rather than being served stale. Limits of the current design: H2 is embedded and single-process, so there is exactly one app instance; horizontal scale needs Postgres (the SQL used is portable: conditional UPDATE, `FOR UPDATE`, unique constraints). `ReadinessFailClosedTest` closes the readiness pool (simulating lost DB connectivity) and asserts `/health/ready` returns 503 while `/health/live` stays 200. What is not tested: a real network partition between app and a remote database, since H2 is embedded in the process.
 
+**Crash durability.** The default H2 URL sets `WRITE_DELAY=0` so each commit is flushed before the 201 is sent. We found by `kill -9` testing that H2's default 500 ms write delay can lose the most recent confirmed bookings in a hard crash, which would break the promise that a seat we confirmed is never sold again. The price is roughly 20 % throughput on a laptop. After a crash and restart the data, idempotency keys, expired-hold cleanup and metrics gauges all recover (see README, "Restarts, crashes and cold starts").
+
 ## Observability / what pages me at 2am
 - 5xx rate > 0 (`http_server_requests_seconds_count{status=~"5.."}`): by design declines are 4xx, so any 5xx is a bug or an outage.
 - `/health/ready` failing, or restarts.
