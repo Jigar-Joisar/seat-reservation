@@ -13,6 +13,7 @@ local = threading.local()
 
 class Client:
     def __init__(self, base):
+        if "://" not in base: base = "http://" + base
         u = urlparse(base)
         self.https = u.scheme == "https"
         self.host, self.port = u.hostname, u.port or (443 if self.https else 80)
@@ -55,7 +56,8 @@ def main():
     ap.add_argument("--workers", type=int, default=200)
     ap.add_argument("--admin-secret", default=os.environ.get("ADMIN_SECRET", "dev-admin-secret"))
     a = ap.parse_args()
-    api = Client(a.base_url.rstrip("/"))
+    a.base_url = a.base_url.rstrip("/")
+    api = Client(a.base_url)
     fails = []
     RUN = "%x" % random.getrandbits(32)
     ALL = []
