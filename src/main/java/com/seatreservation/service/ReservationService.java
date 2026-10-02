@@ -76,7 +76,7 @@ public class ReservationService {
     }
 
     private Result doReserve(String showId, String userId, List<String> seats, String idemKey, boolean hold) {
-        Optional<Result> fast = replayIfExists(userId, idemKey, seats);
+        Optional<Result> fast = replayIfExists(showId, userId, idemKey, seats);
         if (fast.isPresent()) return fast.get();
 
         var show = jdbc.query("SELECT price_paise, per_user_limit FROM shows WHERE id = ?",
@@ -95,7 +95,7 @@ public class ReservationService {
             return tx.execute(st -> {
                 Integer held = jdbc.queryForObject(
                         "SELECT seats_held FROM user_show_allocations WHERE show_id = ? AND user_id = ? FOR UPDATE", Integer.class, showId, userId);
-                Optional<Result> again = replayIfExists(userId, idemKey, seats);
+                Optional<Result> again = replayIfExists(showId, userId, idemKey, seats);
                 if (again.isPresent()) return again.get();
                 if (held + seats.size() > limit) {
                     throw new ApiException(HttpStatus.CONFLICT, "per_user_limit", "Per-user limit exceeded",
@@ -124,18 +124,18 @@ public class ReservationService {
                 return new Result(new ReservationView(reservationId, showId, userId, seats, amount, state, expiresAt), false);
             });
         } catch (DuplicateKeyException e) {
-            return replayIfExists(userId, idemKey, seats).orElseThrow(() -> e);
+            return replayIfExists(showId, userId, idemKey, seats).orElseThrow(() -> e);
         }
     }
 
-    private Optional<Result> replayIfExists(String userId, String idemKey, List<String> seats) {
+    private Optional<Result> replayIfExists(String showId, String userId, String idemKey, List<String> seats) {
         var rows = jdbc.query("SELECT id, show_id, seats, amount_paise, status, expires_at FROM reservations WHERE user_id = ? AND idempotency_key = ?",
                 (rs, i) -> new Object[]{rs.getString(1), rs.getString(2), rs.getString(3), rs.getLong(4), rs.getString(5), rs.getTimestamp(6)}, userId, idemKey);
         if (rows.isEmpty()) return Optional.empty();
         Object[] r = rows.get(0);
         List<String> existing = Arrays.asList(((String) r[2]).split(","));
-        if (!existing.equals(seats)) {
-            throw new ApiException(HttpStatus.CONFLICT, "idempotency_conflict", "Idempotency key was already used with a different request body");
+        if (!existing.equals(seats) || !showId.equals(r[1])) {
+            throw new ApiException(HttpStatus.CONFLICT, "idempotency_conflict", "Idempotency key was already used with a different request (different seats or show)");
         }
         return Optional.of(new Result(new ReservationView((String) r[0], (String) r[1], userId, existing, (Long) r[3], (String) r[4], r[5] == null ? null : ((Timestamp) r[5]).toInstant()), true));
     }

@@ -10,8 +10,8 @@ Seat reservation HTTP API (Spring Boot 3.2, Java 17, plain JDBC on embedded H2).
 |---|---|
 | run | `./run.sh` (env overrides, `.env`, `FRESH_DB=1`) |
 | build | `mvn -q clean package -DskipTests` |
-| tests | `mvn -q test` (46 tests, ~1 min; first run needs network for surefire) |
-| load test | `./burst.sh <URL>` |
+| tests | `mvn -q test` (47 tests, ~1 min; first run needs network for surefire) |
+| load test | `./burst.sh <URL>` (14 scenarios; `HOLD_TTL_SECONDS=3 ./run.sh` also enables the expiry ones). Never rebuild (`mvn clean`) while a jar is running: the JVM loses its classes and returns 500s. |
 | lint spec | `make lint-api` |
 
 Only one process may use `./data` at a time (H2 file lock).

@@ -102,8 +102,8 @@ OpenAPI 3 spec: `GET /openapi.yaml` (source: `src/main/resources/static/openapi.
 
 | Command | What it runs |
 |---|---|
-| `make test` (`mvn test`) | 46 integration tests against a real server on a random port (in-memory H2) |
-| `make burst URL=http://localhost:8080` | on-sale stampede against a running instance (local or deployed) |
+| `make test` (`mvn test`) | 47 integration tests against a real server on a random port (in-memory H2) |
+| `make burst URL=http://localhost:8080` | the burst suite below against a running instance (local or deployed) |
 | `make lint-api` | Redocly lint of the OpenAPI spec (needs Node/npx) |
 
 The test suites (`src/test/java/com/seatreservation`):
@@ -114,14 +114,34 @@ The test suites (`src/test/java/com/seatreservation`):
 * `ReadinessFailClosedTest`: readiness returns 503 when the DB connection is lost while liveness stays 200
 * `OpenApiContractTest`: spec documents exactly the real endpoints, security/401/403 declarations match, error codes are real
 
-### Burst tool
+### Burst tool (load + adversarial correctness suite)
 
 ```bash
-./burst.sh http://localhost:8080          # or https://<live-url>; scheme optional
-./burst.py <BASE_URL> --requests 20000 --users 2000 --seats 500 --hot 5 --admin-secret <secret>
+./burst.sh http://localhost:8080                 # or https://<live-url>; the scheme is optional
+./burst.py <BASE_URL> [--scale 1.0] [--only 2,5,8] [--admin-secret S] [--hold-ttl N] [--seed 7]
+HOLD_TTL_SECONDS=3 ./run.sh                      # start the server like this to also run the hold-expiry scenarios
 ```
 
-Stdlib-only Python. It mints real tokens, creates fresh shows (unique user ids per run), runs: (1) 500 users on one seat; (2) a 20k-request stampede on 5 hot seats with ~10 % same-key retries while polling the invariant; (3) 50 parallel same-key requests and same-key-different-seats; (4) one user x 10 parallel reserves at limit 4; (5) cancel / rebook / ownership / spoofed identity; (5b) a hold storm, confirm and ownership; (6) metrics reconciliation (counter deltas must equal what the client observed; needs a service with no other traffic). It prints the outcome distribution and exits non-zero if any check fails.
+Stdlib-only Python; exit code is non-zero if any check fails. It verifies everything **from the outside over HTTP**: outcome distributions, the show invariant, readiness during load, latency percentiles, a full **audit** (every reservation is fetched and cross-checked against the seat map: no seat in two live reservations, seat map equals the union of live reservations, statuses agree, nobody above the limit) and finally metric reconciliation. `--scale 0.2` gives a quick smoke run (about 10 s); `--only` runs selected scenarios. Each run uses unique user ids, so it can be repeated against the same instance.
+
+| # | Scenario | What must hold |
+|---|---|---|
+| 1 | 500 users, one seat | exactly one 201, 499 x 409 `seat_taken`, audit clean |
+| 2 | 20k-request stampede (2000 users, 5 hot seats, ~10 % same-key retries) with live polling | zero 5xx, invariant on every sample, `/health/ready` always 200, hall sold out exactly, one owner per hot seat, latency p50/p95/p99 |
+| 3 | idempotency: 50 parallel same-key requests; 150 users x 3 identical parallel requests; same key different seats; same key string across users | one reservation per key, 150 created + 300 replays, no double charge, conflicts 409 |
+| 4 | per-user limit: one user x 10 parallel; mixed reserve+hold; 150 users x 8 parallel distinct seats | exactly 4 each, never 5 |
+| 5 | multi-seat deadlock storm: 300 users, random 2-4 seats in random order on 12 seats | only 201/409, taken seats == seats in winning requests (failed requests leak nothing) |
+| 6 | sell-out: 6000 requests for 200 seats | every seat sold exactly once, number of 201s == confirmed seats |
+| 7 | recycling: 200 users reserve/cancel the same 3 seats | every win cancelled cleanly, all seats available at the end |
+| 8 | chaos mix: 100 users x 80 random reserve / hold / confirm / cancel / replay / reads | only 200/201/409, audit clean, all unconfirmed holds expire (short TTL) |
+| 9 | confirm racing cancel on the same hold, 30 rounds | cancel always wins the final state, never a mixed result |
+| 10 | hold expiry (short TTL only): confirms fired around the expiry instant | a confirm that returned 200 is never undone; every other hold expires; limit and seat are freed; confirmed seats survive sweeps |
+| 11 | hostile input under load: no/garbage/tampered token, user creating a show, malformed JSON, wrong types, injection-looking seats, fractional and giant prices, unknown routes and methods | the expected 4xx every time, zero 5xx, show unchanged |
+| 12 | two shows at once, same users and seat names | independent winners and limits per show |
+| 13 | ownership, spoofed `user_id`, stale cancel, idempotent confirm | 403 for non-owners, token identity wins, no resurrection of re-booked seats |
+| 14 | metrics reconciliation (needs a service with no other traffic) | confirmed/held counters and every decline reason equal what the client observed |
+
+Sanity check of the checker itself: removing the `AND status = 'available'` guard from the seat UPDATE (a deliberate double-sell bug) makes scenarios 1 and 5 fail on "exactly one 201" and "no seat appears in two live reservations". The plain `available + held + confirmed == total` invariant would not have caught it, which is why the audit exists.
 
 ---
 

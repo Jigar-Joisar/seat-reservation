@@ -133,6 +133,15 @@ class ValidationAndAuthTest extends AbstractApiTest {
         assertEquals(2, showState(id).get("confirmed").asInt());
     }
 
+    @Test void sameKeyOnADifferentShowIsAConflictNotAReplay() {
+        String s1 = show(3, null), s2 = show(3, null);
+        String u = token("xshow");
+        assertEquals(201, reserve(s1, u, "k", "A1").status());
+        Resp r = reserve(s2, u, "k", "A1");
+        assertError(r, 409, "idempotency_conflict");
+        assertEquals(3, showState(s2).get("available").asInt(), "nothing was booked on the second show");
+    }
+
     @Test void declinedRequestsDoNotBurnTheIdempotencyKey() {
         String id = show(3, 4);
         assertEquals(201, reserve(id, token("owner"), "o", "A1").status());
