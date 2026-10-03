@@ -7,6 +7,10 @@ server:
     max-connections: 20000
     accept-count: 4000
     connection-timeout: 60s
+    # Keep idle connections open longer than any fronting proxy's idle timeout, so the proxy never reuses a
+    # connection Tomcat has just closed (that race shows up as an empty reply / 520).
+    keep-alive-timeout: 300s
+    max-keep-alive-requests: -1
 
 spring:
   application:
@@ -56,6 +60,7 @@ app:
   hold-ttl-seconds: ${HOLD_TTL_SECONDS:300}
   hold-sweep-ms: ${HOLD_SWEEP_MS:5000}
   public-logs: ${PUBLIC_LOGS:true}
+  db-probe-ms: ${DB_PROBE_MS:2000}
 
 logging:
   level:

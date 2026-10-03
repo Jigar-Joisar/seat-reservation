@@ -39,15 +39,21 @@ public class HealthController {
         return Map.of("status", "UP");
     }
 
-    @GetMapping("/health/ready")
-    public ResponseEntity<Map<String, String>> ready() {
+    /** One probe on the dedicated pool; false if the database cannot answer within the probe timeout. */
+    public boolean databaseReachable() {
         try {
             probe.queryForObject("SELECT 1", Integer.class);
-            return ResponseEntity.ok(Map.of("status", "UP", "database", "UP"));
+            return true;
         } catch (Exception e) {
-            log.error("readiness check failed: database unreachable", e);
-            return ResponseEntity.status(503).body(Map.of("status", "DOWN", "database", "DOWN"));
+            return false;
         }
+    }
+
+    @GetMapping("/health/ready")
+    public ResponseEntity<Map<String, String>> ready() {
+        if (databaseReachable()) return ResponseEntity.ok(Map.of("status", "UP", "database", "UP"));
+        log.error("readiness check failed: database unreachable");
+        return ResponseEntity.status(503).body(Map.of("status", "DOWN", "database", "DOWN"));
     }
 
     @PreDestroy

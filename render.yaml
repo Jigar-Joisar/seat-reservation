@@ -3,7 +3,9 @@ services:
     name: seat-reservation
     runtime: docker
     plan: free
-    healthCheckPath: /health/ready
+    # Liveness, not readiness: Render takes an instance out of rotation after 15 s of failed checks and restarts it
+    # after 60 s. With /health/ready a database outage would hide the app's own 503 + Retry-After behind Render's 502.
+    healthCheckPath: /health/live
     envVars:
       # Render gives postgres://user:pass@host/db; the app converts it to JDBC.
       - key: DATABASE_URL

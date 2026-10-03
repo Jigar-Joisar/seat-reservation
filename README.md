@@ -114,7 +114,7 @@ OpenAPI 3 spec: `GET /openapi.yaml` (source: `src/main/resources/static/openapi.
 
 | Command | What it runs |
 |---|---|
-| `make test` (`mvn test`) | 50 integration tests against a real server on a random port (in-memory H2) |
+| `make test` (`mvn test`) | 52 integration tests against a real server on a random port (in-memory H2) |
 | `make burst URL=http://localhost:8080` | the burst suite below against a running instance (local or deployed) |
 | `make lint-api` | Redocly lint of the OpenAPI spec (needs Node/npx) |
 
@@ -165,6 +165,7 @@ Sanity check of the checker itself: removing the `AND status = 'available'` guar
 ## Observability
 
 * **Health**: `/health/live` (process), `/health/ready` (database reachable, checked on a dedicated 2-connection pool so a saturated request pool never flaps readiness; 503 when down).
+* **Database outage behaviour**: a monitor probes the database every `DB_PROBE_MS` (default 2000) on that dedicated pool. After 3 consecutive failures the circuit opens and requests that need the database (`/shows*`, `/reservations*`) get an immediate `503 service_unavailable` with `Retry-After: 5` instead of waiting out the 60 s connection timeout; the first successful probe closes it. Liveness, token issuing, metrics and logs keep working. Nothing is ever booked while the database is unreachable.
 * **Metrics** (`/actuator/prometheus`): `reservations_confirmed_total`, `reservations_held_total`, `reservations_cancelled_total`, `reservations_expired_total`, `reservations_declined_total{reason}`, `reservation_duration_seconds`, gauges `seats_available|held|confirmed{show_id}`.
 * **Logs** (stdout JSON, plus [a public read-only view](#public-log-access)): one JSON line per request (`method, path, status, duration_ms, user_id, request_id`) plus business events (`reservation confirmed|held|cancelled`, `hold expired`) with `reservation_id` and `show_id`. `X-Request-ID` is accepted (if safe) or generated, echoed on every response, and attached to every log line.
 
@@ -182,7 +183,9 @@ Why it is safe to expose:
 
 ## Deployment
 
-The `Dockerfile` is a multi-stage build (Maven, then a non-root JRE image with a readiness `HEALTHCHECK`). `render.yaml` is a Render blueprint: a Docker web service (health check `/health/ready`, generated `JWT_SECRET`/`ADMIN_SECRET`) plus a free-tier Postgres wired via `DATABASE_URL`. `docker compose up --build` runs the same pairing locally: app + a real Postgres container.
+The `Dockerfile` is a multi-stage build (Maven, then a non-root JRE image with a readiness `HEALTHCHECK`). `render.yaml` is a Render blueprint: a Docker web service (health check `/health/live`, generated `JWT_SECRET`/`ADMIN_SECRET`) plus a free-tier Postgres wired via `DATABASE_URL`. `docker compose up --build` runs the same pairing locally: app + a real Postgres container.
+
+Health check choice: Render takes an instance out of rotation after 15 s of failed checks and restarts it after 60 s. Pointing the check at `/health/ready` would turn a database outage into Render's own `502`s for every client, so the platform check uses `/health/live` and `/health/ready` is for your monitoring. (A service created by hand in the dashboard needs this set under Settings > Health Check Path; `render.yaml` only applies to Blueprint-managed services.)
 
 Checklist: the service listens on `$PORT`; with the blueprint, `DATABASE_URL`, `JWT_SECRET` and `ADMIN_SECRET` are set automatically. The service is single-instance by design (a second instance would not share in-memory metric counters); see [WRITEUP.md](WRITEUP.md) for the reasoning.
 

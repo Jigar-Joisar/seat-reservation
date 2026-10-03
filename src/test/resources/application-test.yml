@@ -9,3 +9,4 @@ management:
 app:
   hold-ttl-seconds: 2
   hold-sweep-ms: 300
+  db-probe-ms: 200
