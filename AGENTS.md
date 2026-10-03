@@ -10,7 +10,7 @@ Seat reservation HTTP API (Spring Boot 3.2, Java 17, plain JDBC on embedded H2).
 |---|---|
 | run | `./run.sh` (env overrides, `.env`, `FRESH_DB=1`) |
 | build | `mvn -q clean package -DskipTests` |
-| tests | `mvn -q test` (52 tests, ~1 min; first run needs network for surefire) |
+| tests | `mvn -q test` (53 tests, ~1 min; first run needs network for surefire) |
 | load test | `./burst.sh <URL>` (14 scenarios; `HOLD_TTL_SECONDS=3 ./run.sh` also enables the expiry ones). Never rebuild (`mvn clean`) while a jar is running: the JVM loses its classes and returns 500s. |
 | lint spec | `make lint-api` |
 
@@ -37,9 +37,10 @@ Only one process may use `./data` at a time (H2 file lock).
 10. SQL must stay portable — tests run on H2 (PostgreSQL mode), deployment runs real Postgres. No vendor-specific syntax.
 11. Postgres aborts the transaction after ANY failed statement. Never let an expected constraint violation fire inside `tx.execute`: the `user_show_allocations` insert and the `DuplicateKeyException` catch in `doReserve` are deliberately outside the transaction boundary. Keep it that way.
 12. `DbHealthMonitor` + `DbGuardFilter` fail database requests fast with 503 while the health probe is failing. Do not point the guard at the request pool (it would flap under load) and do not lower the Hikari connection timeout to get fast failure: the slow tail of a burst legitimately waits 40-50 s for a connection.
-13. Render's health check path is `/health/live`; `/health/ready` would make the platform hide the app's own 503 behind a 502.
-14. `server.tomcat.keep-alive-timeout` (300s) and `max-keep-alive-requests` (-1) are deliberate; they keep Tomcat from closing connections a fronting proxy may still reuse.
-15. `DATABASE_URL` accepts `jdbc:` URLs and `postgres://user:pass@host/db` (Render style, converted by `config/PostgresUrlInitializer`). For `jdbc:postgresql://` without embedded credentials use `DATABASE_USER`/`DATABASE_PASSWORD`.
+13. Keep `spring.task.scheduling.pool.size` above 1: the hold sweeper can block 60 s on a dead pool and must not starve `DbHealthMonitor` (`SchedulerIsolationTest`).
+14. Render's health check path is `/health/live`; `/health/ready` would make the platform hide the app's own 503 behind a 502.
+15. `server.tomcat.keep-alive-timeout` (300s) and `max-keep-alive-requests` (-1) are deliberate; they keep Tomcat from closing connections a fronting proxy may still reuse.
+16. `DATABASE_URL` accepts `jdbc:` URLs and `postgres://user:pass@host/db` (Render style, converted by `config/PostgresUrlInitializer`). For `jdbc:postgresql://` without embedded credentials use `DATABASE_USER`/`DATABASE_PASSWORD`.
 
 ## Conventions
 * JSON is snake_case (Jackson global strategy). DTOs are records in `api/Dtos`.

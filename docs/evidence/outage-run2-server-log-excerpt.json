@@ -1,0 +1,42 @@
+{
+  "note": "Excerpt of /ops/logs taken after the outage-run-2 probe: first failed readiness check, sweeper blocked on the dead pool, circuit opening, recovery.",
+  "entries": [
+    {
+      "timestamp": "2026-10-03T16:51:59.481072289Z",
+      "level": "ERROR",
+      "logger": "com.seatreservation.controller.HealthController",
+      "message": "readiness check failed: database unreachable",
+      "request_id": "6231aa91-79c1-491b-b109-946f45f8491c"
+    },
+    {
+      "timestamp": "2026-10-03T16:52:59.371284677Z",
+      "level": "WARN",
+      "logger": "com.seatreservation.service.HoldExpirySweeper",
+      "message": "hold sweep failed, will retry"
+    },
+    {
+      "timestamp": "2026-10-03T16:53:05.375669805Z",
+      "level": "WARN",
+      "logger": "com.seatreservation.service.DbHealthMonitor",
+      "message": "database unreachable for 3 consecutive probes, failing database requests fast with 503"
+    },
+    {
+      "timestamp": "2026-10-03T16:54:05.376295245Z",
+      "level": "WARN",
+      "logger": "com.seatreservation.service.HoldExpirySweeper",
+      "message": "hold sweep failed, will retry"
+    },
+    {
+      "timestamp": "2026-10-03T16:55:11.378953785Z",
+      "level": "WARN",
+      "logger": "com.seatreservation.service.HoldExpirySweeper",
+      "message": "hold sweep failed, will retry"
+    },
+    {
+      "timestamp": "2026-10-03T16:56:01.936359221Z",
+      "level": "WARN",
+      "logger": "com.seatreservation.service.DbHealthMonitor",
+      "message": "database reachable again, requests resume"
+    }
+  ]
+}

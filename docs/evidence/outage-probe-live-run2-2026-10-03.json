@@ -1,0 +1,15 @@
+{
+  "target": "https://seat-reservation-9zhl.onrender.com",
+  "started": "2026-10-03T22:21:04.103899+05:30",
+  "duration_s": 360,
+  "ready_down_at_s": 53.186410427093506,
+  "ready_up_at_s": 296.07267212867737,
+  "reserve_status_counts": {
+    "201": 115,
+    "503": 109
+  },
+  "audit_pass": true,
+  "seats_201": 115,
+  "seats_confirmed": 115,
+  "extra_confirmed": []
+}

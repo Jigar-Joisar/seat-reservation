@@ -114,7 +114,7 @@ OpenAPI 3 spec: `GET /openapi.yaml` (source: `src/main/resources/static/openapi.
 
 | Command | What it runs |
 |---|---|
-| `make test` (`mvn test`) | 52 integration tests against a real server on a random port (in-memory H2) |
+| `make test` (`mvn test`) | 53 integration tests against a real server on a random port (in-memory H2) |
 | `make burst URL=http://localhost:8080` | the burst suite below against a running instance (local or deployed) |
 | `make lint-api` | Redocly lint of the OpenAPI spec (needs Node/npx) |
 

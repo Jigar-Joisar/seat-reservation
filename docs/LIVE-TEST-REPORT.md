@@ -16,7 +16,7 @@ Evidence that the deployed service behaves correctly, gathered on 2026-10-03 aga
 * **The scale-0.5 suite passed cleanly on its second run** (19,779 calls, 650 s, 98 checks, 0 failed). Its first run had **one unexplained transport failure** (a request that got no response and timed out client-side), reported below as a failed run.
 * **The full-size suite (scale 1.0) was run once: 37,854 calls in 1,270 s (21 minutes), 98 checks passed and 1 failed.** The one failure is a single response with status `520` out of 6,000 in the sell-out scenario. The application recorded no 5xx and the sell-out itself was exact. It is reported as a failed run, not a pass.
 * **Two single requests (one in each of the two largest runs) were lost between the client and the application** and left no trace in the server's counters. The cause is not established.
-* **A database outage is survived without data damage, but not gracefully on Render.** The application fails closed (readiness `503`, reservations `503` with `Retry-After`, nothing booked during the outage), yet Render's health check on `/health/ready` pulled the whole instance out of rotation, so clients saw `502` for about 3.5 minutes. See *Database outage test*.
+* **A database outage is survived without data damage, and with the corrected health check Render no longer hides the application's behaviour.** In run 2 (4-minute outage) liveness stayed `200`, reservations returned `503` + `Retry-After` with no `502`s, nothing was booked, the audit passed and the service recovered about 2 s after the database answered. The circuit breaker, however, opened 66 s late because of a shared single-thread scheduler; that is fixed and regression-tested but not yet re-verified live. See *Database outage test, run 2*.
 * **Throughput of the free instance is about 25-35 requests/s.**
 
 ## Runs
@@ -151,7 +151,7 @@ What the `520` is and is not:
 
 Across the three largest runs (scale 0.5 twice and scale 1.0, about 77,400 calls) two requests were lost this way, and the second scale-0.5 run (19,779 calls) was clean.
 
-## Database outage test
+## Database outage test, run 1 (before the circuit breaker and health-check change)
 
 Procedure: `outage_probe.py` against the live service for 360 s (one reservation attempt, `/health/live` and `/health/ready` per second); the Render Postgres was suspended about 10 s in and resumed later. Artifacts: [timeline](evidence/outage-probe-live-2026-10-03.txt), [json](evidence/outage-probe-live-2026-10-03.json).
 
@@ -172,6 +172,33 @@ Findings:
 4. The exact moment the database was resumed was not recorded, so time-to-recover after resume is not stated.
 5. Before this change was made the application returned a generic `500` for ordinary requests during an outage; it now returns `503` (covered by `ReadinessFailClosedTest`).
 
+## Database outage test, run 2 (new health check path and circuit breaker)
+
+Same probe, same method, on build `9562747` with Render's health check path set to `/health/live`. The probe started at 16:51:04 UTC; the Postgres was suspended at about 16:51:57 UTC (first failed readiness check in the server log: 16:51:59) and resumed at about 16:56:00 UTC (the user's recorded stamp is 16:56:02, typed after the click). Outage length: about 4 minutes. Artifacts: [timeline](evidence/outage-probe-live-run2-2026-10-03.txt), [json](evidence/outage-probe-live-run2-2026-10-03.json), [server log excerpt](evidence/outage-run2-server-log-excerpt.json), [metrics](evidence/metrics-after-outage-run2.prom), [times](evidence/outage-run2-times.txt).
+
+| Observation | Run 1 | Run 2 |
+|---|---|---|
+| `/health/live` during the outage | 200, then **502** for 213 s | **200 on every probe** |
+| Render pulled the instance out of rotation | yes (after about 16 s) | **no** |
+| `/health/ready` | 503, then 502 | 503 (200 again at t=296 s) |
+| Reservations during the outage | 1 x `503`, 212 x `502` | **109 x `503` + `Retry-After`, no `502`**, no other 5xx, no transport failures |
+| Reservations booked during the outage | none | none |
+| Audit after recovery | pass | **pass**: 115 seats returned `201`, 115 confirmed, 255 + 0 + 115 == 370 |
+| Recovery after the database answered again | not measurable | about 2 s: the breaker closed at 16:56:01.9, first `201` at 16:56:02 |
+
+The health-check change worked: Render no longer hides the application's own behaviour. Counters agree with the client: 109 `503`s seen by the client equal 79 breaker rejections plus 30 connection-timeout rejections on the server; Hikari recorded 33 connection timeouts (30 requests plus 3 background sweeps).
+
+**A defect surfaced: the breaker opened about 66 s late.** The `503`s fell into two groups. 30 requests sent in the first 68 s of the outage each waited 60.2-61.4 s (Hikari's connection timeout) before failing; the 79 requests sent after that failed in 1.3 s or less. The server log shows why:
+
+| UTC | Event |
+|---|---|
+| 16:51:59.5 | first failed readiness check (outage began) |
+| 16:52:59.4 | `hold sweep failed` (the sweeper had been blocked 60 s on the dead connection pool) |
+| 16:53:05.4 | `database unreachable for 3 consecutive probes, failing database requests fast` (6 s later, exactly three 2 s probes) |
+| 16:56:01.9 | `database reachable again, requests resume` |
+
+Spring's default scheduler has a single thread, shared by the hold sweeper and the health monitor; the sweeper held it for 60 s, so the probe could not run until it gave up. The fix is a scheduler pool of 4 (`spring.task.scheduling.pool.size`), with `SchedulerIsolationTest` as a regression (it fails when forced back to one thread). **This fix is committed but not yet deployed or re-verified live**, so the measured fail-fast time of 66 s is the pre-fix figure; the expected figure after the fix is about 8 s (three probes of up to 2 s plus the interval).
+
 ## Log access
 
 The platform offers no public log URL, so the service exposes `GET /ops/logs` (README, *Public log access*). Checked live: a reservation's `X-Request-ID` returned both its access line and its `reservation confirmed` event ([sample](evidence/logs-live-sample.json)), and a 1000-entry dump taken after a burst contained none of the admin secret, any issued token, `Authorization`, `Bearer`, a stack trace, `jdbc:`, `postgres` or `password`; 977 of 1000 entries carried a `request_id` and the rest were background hold-expiry events. The buffer holds the last 2000 events, which under burst load is roughly the last minute.
@@ -181,7 +208,7 @@ The platform offers no public log URL, so the service exposes `GET /ops/logs` (R
 * **No clean full-size run.** The default scale (1.0, 37,854 calls, 21 minutes) was run once and ended with one `520` response (above). It has not been repeated.
 * **Hold expiry live.** It was exercised once, at scale 0.2 with an 8 s TTL, where all 23 timed confirms arrived after expiry (0 won). That verifies that expired holds stay expired and nothing is resurrected, but not a confirm winning the race on the live service; that case is covered by the local short-TTL runs and `ConcurrencyStressTest`. The scale-0.5 runs used the production TTL of 300 s, so scenario 10 was skipped.
 * **Two unexplained lost requests**: one transport failure in the first scale-0.5 run and one `520` in the full-size run, both described above.
-* **Outage test:** one run; the resume time was not recorded; Render's event log was not captured.
+* **Outage test:** two runs. Run 2 measured recovery but exposed the scheduler defect above; the corrected build has not yet been exercised live. Render's event log was not captured, and the suspend time is inferred from the first failed readiness check.
 * Render's edge returned its own `403` for SQL-injection-looking payloads before they reached the service in the earlier runs; the burst accepts `400` or `403` for that single case.
 * Render's free PostgreSQL expires 30 days after creation.
 * Docker was not available on the author's machine; Render builds the image on every deploy.

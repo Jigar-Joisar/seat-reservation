@@ -1,0 +1,459 @@
+probing https://seat-reservation-9zhl.onrender.com for 360s, show 6ef99d12-1113-4170-81b5-95e0723594f7; stop the database now, wait, then start it again
+
+  t(s)  live  ready  reserve(latency)
+      0  reserve P0 -> 201  (0.5s)
+      0   200    200
+      1  reserve P1 -> 201  (0.3s)
+      1   200    200
+      2   200    200
+      2  reserve P2 -> 201  (0.3s)
+      3   200    200
+      3  reserve P3 -> 201  (0.3s)
+      4   200    200
+      4  reserve P4 -> 201  (0.4s)
+      5   200    200
+      5  reserve P5 -> 201  (0.6s)
+      6   200    200
+      6  reserve P6 -> 201  (0.4s)
+      7   200    200
+      7  reserve P7 -> 201  (0.2s)
+      8   200    200
+      8  reserve P8 -> 201  (0.2s)
+      9  reserve P9 -> 201  (0.2s)
+      9   200    200
+     10   200    200
+     10  reserve P10 -> 201  (0.3s)
+     11   200    200
+     11  reserve P11 -> 201  (0.2s)
+     12   200    200
+     12  reserve P12 -> 201  (0.3s)
+     13   200    200
+     13  reserve P13 -> 201  (0.3s)
+     14   200    200
+     14  reserve P14 -> 201  (0.2s)
+     15   200    200
+     15  reserve P15 -> 201  (0.2s)
+     16  reserve P16 -> 201  (0.2s)
+     16   200    200
+     17   200    200
+     17  reserve P17 -> 201  (0.3s)
+     18   200    200
+     18  reserve P18 -> 201  (0.2s)
+     19   200    200
+     19  reserve P19 -> 201  (0.4s)
+     20   200    200
+     20  reserve P20 -> 201  (0.5s)
+     21  reserve P21 -> 201  (0.3s)
+     21   200    200
+     22   200    200
+     22  reserve P22 -> 201  (0.3s)
+     23   200    200
+     23  reserve P23 -> 201  (0.2s)
+     24  reserve P24 -> 201  (0.3s)
+     24   200    200
+     25   200    200
+     25  reserve P25 -> 201  (0.3s)
+     26   200    200
+     26  reserve P26 -> 201  (0.2s)
+     27   200    200
+     27  reserve P27 -> 201  (0.2s)
+     28   200    200
+     28  reserve P28 -> 201  (0.3s)
+     29   200    200
+     29  reserve P29 -> 201  (0.3s)
+     30   200    200
+     30  reserve P30 -> 201  (0.2s)
+     31   200    200
+     31  reserve P31 -> 201  (0.5s)
+     32  reserve P32 -> 201  (0.2s)
+     32   200    200
+     33   200    200
+     33  reserve P33 -> 201  (0.3s)
+     34   200    200
+     34  reserve P34 -> 201  (0.3s)
+     35   200    200
+     35  reserve P35 -> 201  (0.2s)
+     36   200    200
+     36  reserve P36 -> 201  (0.2s)
+     37   200    200
+     37  reserve P37 -> 201  (0.3s)
+     38   200    200
+     38  reserve P38 -> 201  (0.3s)
+     39   200    200
+     39  reserve P39 -> 201  (0.2s)
+     40   200    200
+     40  reserve P40 -> 201  (0.2s)
+     41   200    200
+     41  reserve P41 -> 201  (0.4s)
+     42  reserve P42 -> 201  (0.2s)
+     42   200    200
+     43  reserve P43 -> 201  (0.2s)
+     43   200    200
+     44   200    200
+     44  reserve P44 -> 201  (0.2s)
+     45  reserve P45 -> 201  (0.2s)
+     45   200    200
+     46   200    200
+     46  reserve P46 -> 201  (0.3s)
+     47   200    200
+     47  reserve P47 -> 201  (0.2s)
+     48   200    200
+     48  reserve P48 -> 201  (0.4s)
+     49   200    200
+     49  reserve P49 -> 201  (0.2s)
+     50   200    200
+     50  reserve P50 -> 201  (0.3s)
+     51  reserve P51 -> 201  (0.3s)
+     51   200    200
+     52   200    200
+     52  reserve P52 -> 201  (0.2s)
+     53   200    503
+     55   200    503
+     58   200    503
+     60   200    503
+     62   200    503
+     64   200    503
+     67   200    503
+     69   200    503
+     71   200    503
+     73   200    503
+     76   200    503
+     78   200    503
+     80   200    503
+     82   200    503
+     85   200    503
+     88   200    503
+     91   200    503
+     93   200    503
+     95   200    503
+     97   200    503
+    100   200    503
+    102   200    503
+    105   200    503
+    107   200    503
+    109   200    503
+     53  reserve P53 -> 503 service_unavailable Retry-After=5 (60.2s)
+    111   200    503
+     55  reserve P54 -> 503 service_unavailable Retry-After=5 (60.3s)
+    114   200    503
+     58  reserve P55 -> 503 service_unavailable Retry-After=5 (60.2s)
+    116   200    503
+     60  reserve P56 -> 503 service_unavailable Retry-After=5 (60.4s)
+    118   200    503
+     62  reserve P57 -> 503 service_unavailable Retry-After=5 (60.2s)
+    121   200    503
+    123  reserve P83 -> 503 service_unavailable Retry-After=5 (0.5s)
+     64  reserve P58 -> 503 service_unavailable Retry-After=5 (60.2s)
+    123   200    503
+    125  reserve P84 -> 503 service_unavailable Retry-After=5 (0.4s)
+     67  reserve P59 -> 503 service_unavailable Retry-After=5 (60.2s)
+    125   200    503
+    127  reserve P85 -> 503 service_unavailable Retry-After=5 (0.3s)
+     69  reserve P60 -> 503 service_unavailable Retry-After=5 (60.2s)
+    127   200    503
+    130  reserve P86 -> 503 service_unavailable Retry-After=5 (0.2s)
+     71  reserve P61 -> 503 service_unavailable Retry-After=5 (60.2s)
+    130   200    503
+    132  reserve P87 -> 503 service_unavailable Retry-After=5 (1.3s)
+     73  reserve P62 -> 503 service_unavailable Retry-After=5 (60.2s)
+    132   200    503
+    134  reserve P88 -> 503 service_unavailable Retry-After=5 (0.2s)
+     76  reserve P63 -> 503 service_unavailable Retry-After=5 (60.3s)
+    134   200    503
+    136  reserve P89 -> 503 service_unavailable Retry-After=5 (0.2s)
+     78  reserve P64 -> 503 service_unavailable Retry-After=5 (60.2s)
+    136   200    503
+    139  reserve P90 -> 503 service_unavailable Retry-After=5 (0.2s)
+     80  reserve P65 -> 503 service_unavailable Retry-After=5 (60.2s)
+    139   200    503
+    141  reserve P91 -> 503 service_unavailable Retry-After=5 (0.2s)
+     82  reserve P66 -> 503 service_unavailable Retry-After=5 (60.3s)
+    141   200    503
+    143  reserve P92 -> 503 service_unavailable Retry-After=5 (0.2s)
+     85  reserve P67 -> 503 service_unavailable Retry-After=5 (60.4s)
+    143   200    503
+    145  reserve P93 -> 503 service_unavailable Retry-After=5 (0.2s)
+    145   200    503
+    148  reserve P94 -> 503 service_unavailable Retry-After=5 (0.2s)
+     88  reserve P68 -> 503 service_unavailable Retry-After=5 (60.3s)
+    148   200    503
+    150  reserve P95 -> 503 service_unavailable Retry-After=5 (0.2s)
+     91  reserve P69 -> 503 service_unavailable Retry-After=5 (60.3s)
+    150   200    503
+    152  reserve P96 -> 503 service_unavailable Retry-After=5 (0.2s)
+     93  reserve P70 -> 503 service_unavailable Retry-After=5 (60.3s)
+    152   200    503
+    154  reserve P97 -> 503 service_unavailable Retry-After=5 (0.2s)
+     95  reserve P71 -> 503 service_unavailable Retry-After=5 (60.2s)
+    154   200    503
+    156  reserve P98 -> 503 service_unavailable Retry-After=5 (0.2s)
+     97  reserve P72 -> 503 service_unavailable Retry-After=5 (60.4s)
+    156   200    503
+    159  reserve P99 -> 503 service_unavailable Retry-After=5 (0.2s)
+    100  reserve P73 -> 503 service_unavailable Retry-After=5 (60.2s)
+    159   200    503
+    161  reserve P100 -> 503 service_unavailable Retry-After=5 (0.2s)
+    102  reserve P74 -> 503 service_unavailable Retry-After=5 (60.2s)
+    161   200    503
+    163  reserve P101 -> 503 service_unavailable Retry-After=5 (0.2s)
+    105  reserve P75 -> 503 service_unavailable Retry-After=5 (60.3s)
+    163   200    503
+    165  reserve P102 -> 503 service_unavailable Retry-After=5 (0.2s)
+    107  reserve P76 -> 503 service_unavailable Retry-After=5 (60.2s)
+    165   200    503
+    168  reserve P103 -> 503 service_unavailable Retry-After=5 (0.2s)
+    109  reserve P77 -> 503 service_unavailable Retry-After=5 (60.3s)
+    168   200    503
+    170  reserve P104 -> 503 service_unavailable Retry-After=5 (0.3s)
+    111  reserve P78 -> 503 service_unavailable Retry-After=5 (60.2s)
+    170   200    503
+    172  reserve P105 -> 503 service_unavailable Retry-After=5 (0.2s)
+    114  reserve P79 -> 503 service_unavailable Retry-After=5 (60.3s)
+    172   200    503
+    175  reserve P106 -> 503 service_unavailable Retry-After=5 (0.2s)
+    116  reserve P80 -> 503 service_unavailable Retry-After=5 (60.5s)
+    175   200    503
+    177  reserve P107 -> 503 service_unavailable Retry-After=5 (0.2s)
+    177   200    503
+    179  reserve P108 -> 503 service_unavailable Retry-After=5 (0.2s)
+    118  reserve P81 -> 503 service_unavailable Retry-After=5 (61.4s)
+    121  reserve P82 -> 503 service_unavailable Retry-After=5 (60.2s)
+    179   200    503
+    181  reserve P109 -> 503 service_unavailable Retry-After=5 (0.2s)
+    181   200    503
+    183  reserve P110 -> 503 service_unavailable Retry-After=5 (0.2s)
+    183   200    503
+    186  reserve P111 -> 503 service_unavailable Retry-After=5 (0.2s)
+    186   200    503
+    188  reserve P112 -> 503 service_unavailable Retry-After=5 (0.2s)
+    188   200    503
+    190  reserve P113 -> 503 service_unavailable Retry-After=5 (0.2s)
+    190   200    503
+    192  reserve P114 -> 503 service_unavailable Retry-After=5 (0.2s)
+    192   200    503
+    195  reserve P115 -> 503 service_unavailable Retry-After=5 (0.2s)
+    195   200    503
+    197  reserve P116 -> 503 service_unavailable Retry-After=5 (0.2s)
+    197   200    503
+    199  reserve P117 -> 503 service_unavailable Retry-After=5 (0.2s)
+    199   200    503
+    201  reserve P118 -> 503 service_unavailable Retry-After=5 (0.2s)
+    201   200    503
+    204  reserve P119 -> 503 service_unavailable Retry-After=5 (0.2s)
+    204   200    503
+    206  reserve P120 -> 503 service_unavailable Retry-After=5 (0.2s)
+    206   200    503
+    208  reserve P121 -> 503 service_unavailable Retry-After=5 (0.2s)
+    208   200    503
+    210  reserve P122 -> 503 service_unavailable Retry-After=5 (0.2s)
+    210   200    503
+    213  reserve P123 -> 503 service_unavailable Retry-After=5 (0.2s)
+    213   200    503
+    215  reserve P124 -> 503 service_unavailable Retry-After=5 (0.2s)
+    215   200    503
+    217  reserve P125 -> 503 service_unavailable Retry-After=5 (0.2s)
+    217   200    503
+    219  reserve P126 -> 503 service_unavailable Retry-After=5 (0.2s)
+    219   200    503
+    222  reserve P127 -> 503 service_unavailable Retry-After=5 (0.2s)
+    222   200    503
+    224  reserve P128 -> 503 service_unavailable Retry-After=5 (0.2s)
+    224   200    503
+    226  reserve P129 -> 503 service_unavailable Retry-After=5 (0.2s)
+    226   200    503
+    229  reserve P130 -> 503 service_unavailable Retry-After=5 (0.2s)
+    229   200    503
+    231  reserve P131 -> 503 service_unavailable Retry-After=5 (0.2s)
+    231   200    503
+    233  reserve P132 -> 503 service_unavailable Retry-After=5 (0.2s)
+    233   200    503
+    235  reserve P133 -> 503 service_unavailable Retry-After=5 (0.3s)
+    235   200    503
+    238  reserve P134 -> 503 service_unavailable Retry-After=5 (0.3s)
+    238   200    503
+    240  reserve P135 -> 503 service_unavailable Retry-After=5 (0.2s)
+    240   200    503
+    242  reserve P136 -> 503 service_unavailable Retry-After=5 (0.2s)
+    242   200    503
+    244  reserve P137 -> 503 service_unavailable Retry-After=5 (0.2s)
+    244   200    503
+    247  reserve P138 -> 503 service_unavailable Retry-After=5 (0.2s)
+    247   200    503
+    249  reserve P139 -> 503 service_unavailable Retry-After=5 (0.2s)
+    249   200    503
+    251  reserve P140 -> 503 service_unavailable Retry-After=5 (0.2s)
+    251   200    503
+    253  reserve P141 -> 503 service_unavailable Retry-After=5 (0.2s)
+    253   200    503
+    256  reserve P142 -> 503 service_unavailable Retry-After=5 (0.2s)
+    256   200    503
+    258  reserve P143 -> 503 service_unavailable Retry-After=5 (0.2s)
+    258   200    503
+    260  reserve P144 -> 503 service_unavailable Retry-After=5 (0.2s)
+    260   200    503
+    262  reserve P145 -> 503 service_unavailable Retry-After=5 (0.2s)
+    262   200    503
+    265  reserve P146 -> 503 service_unavailable Retry-After=5 (0.2s)
+    265   200    503
+    267  reserve P147 -> 503 service_unavailable Retry-After=5 (0.3s)
+    267   200    503
+    269  reserve P148 -> 503 service_unavailable Retry-After=5 (0.2s)
+    269   200    503
+    271  reserve P149 -> 503 service_unavailable Retry-After=5 (0.2s)
+    271   200    503
+    274  reserve P150 -> 503 service_unavailable Retry-After=5 (0.2s)
+    274   200    503
+    276  reserve P151 -> 503 service_unavailable Retry-After=5 (0.2s)
+    276   200    503
+    278  reserve P152 -> 503 service_unavailable Retry-After=5 (0.2s)
+    278   200    503
+    280  reserve P153 -> 503 service_unavailable Retry-After=5 (0.2s)
+    280   200    503
+    283  reserve P154 -> 503 service_unavailable Retry-After=5 (0.2s)
+    283   200    503
+    285  reserve P155 -> 503 service_unavailable Retry-After=5 (0.2s)
+    285   200    503
+    287  reserve P156 -> 503 service_unavailable Retry-After=5 (0.2s)
+    287   200    503
+    289  reserve P157 -> 503 service_unavailable Retry-After=5 (0.2s)
+    289   200    503
+    292  reserve P158 -> 503 service_unavailable Retry-After=5 (0.2s)
+    292   200    503
+    294  reserve P159 -> 503 service_unavailable Retry-After=5 (0.2s)
+    294   200    503
+    296  reserve P160 -> 503 service_unavailable Retry-After=5 (0.2s)
+    296   200    200
+    297   200    200
+    297  reserve P161 -> 503 service_unavailable Retry-After=5 (0.2s)
+    298   200    200
+    298  reserve P162 -> 201  (0.5s)
+    299   200    200
+    299  reserve P163 -> 201  (0.3s)
+    300   200    200
+    300  reserve P164 -> 201  (0.2s)
+    301   200    200
+    301  reserve P165 -> 201  (0.2s)
+    302   200    200
+    302  reserve P166 -> 201  (0.2s)
+    303   200    200
+    303  reserve P167 -> 201  (0.2s)
+    304   200    200
+    304  reserve P168 -> 201  (0.2s)
+    305   200    200
+    305  reserve P169 -> 201  (0.2s)
+    306   200    200
+    306  reserve P170 -> 201  (0.2s)
+    307  reserve P171 -> 201  (0.2s)
+    307   200    200
+    308   200    200
+    308  reserve P172 -> 201  (0.4s)
+    309   200    200
+    309  reserve P173 -> 201  (0.3s)
+    310  reserve P174 -> 201  (0.2s)
+    310   200    200
+    311   200    200
+    311  reserve P175 -> 201  (0.2s)
+    312   200    200
+    312  reserve P176 -> 201  (0.3s)
+    313   200    200
+    313  reserve P177 -> 201  (0.4s)
+    314   200    200
+    314  reserve P178 -> 201  (0.2s)
+    315   200    200
+    315  reserve P179 -> 201  (0.2s)
+    316   200    200
+    316  reserve P180 -> 201  (0.2s)
+    317   200    200
+    317  reserve P181 -> 201  (0.2s)
+    318   200    200
+    318  reserve P182 -> 201  (0.4s)
+    319   200    200
+    319  reserve P183 -> 201  (0.2s)
+    320   200    200
+    320  reserve P184 -> 201  (0.2s)
+    321   200    200
+    321  reserve P185 -> 201  (0.2s)
+    322   200    200
+    322  reserve P186 -> 201  (0.2s)
+    323   200    200
+    323  reserve P187 -> 201  (0.3s)
+    324   200    200
+    324  reserve P188 -> 201  (0.2s)
+    325   200    200
+    325  reserve P189 -> 201  (0.2s)
+    326   200    200
+    326  reserve P190 -> 201  (0.2s)
+    327   200    200
+    327  reserve P191 -> 201  (0.2s)
+    328   200    200
+    328  reserve P192 -> 201  (0.3s)
+    329   200    200
+    329  reserve P193 -> 201  (0.2s)
+    330   200    200
+    330  reserve P194 -> 201  (0.3s)
+    331   200    200
+    331  reserve P195 -> 201  (0.2s)
+    332   200    200
+    332  reserve P196 -> 201  (0.2s)
+    333   200    200
+    333  reserve P197 -> 201  (0.2s)
+    334   200    200
+    334  reserve P198 -> 201  (0.2s)
+    335   200    200
+    335  reserve P199 -> 201  (0.2s)
+    336   200    200
+    336  reserve P200 -> 201  (0.2s)
+    337   200    200
+    337  reserve P201 -> 201  (0.2s)
+    338   200    200
+    338  reserve P202 -> 201  (0.3s)
+    339   200    200
+    339  reserve P203 -> 201  (0.2s)
+    340  reserve P204 -> 201  (0.2s)
+    340   200    200
+    341   200    200
+    341  reserve P205 -> 201  (0.2s)
+    342   200    200
+    342  reserve P206 -> 201  (0.4s)
+    343   200    200
+    343  reserve P207 -> 201  (0.2s)
+    344   200    200
+    344  reserve P208 -> 201  (0.2s)
+    345   200    200
+    345  reserve P209 -> 201  (0.2s)
+    346   200    200
+    346  reserve P210 -> 201  (0.2s)
+    347   200    200
+    347  reserve P211 -> 201  (0.2s)
+    348   200    200
+    348  reserve P212 -> 201  (0.3s)
+    349  reserve P213 -> 201  (0.2s)
+    349   200    200
+    350   200    200
+    350  reserve P214 -> 201  (0.2s)
+    351   200    200
+    351  reserve P215 -> 201  (0.2s)
+    352   200    200
+    352  reserve P216 -> 201  (0.2s)
+    353   200    200
+    353  reserve P217 -> 201  (0.2s)
+    354   200    200
+    354  reserve P218 -> 201  (0.2s)
+    355  reserve P219 -> 201  (0.2s)
+    355   200    200
+    356   200    200
+    356  reserve P220 -> 201  (0.5s)
+    357   200    200
+    357  reserve P221 -> 201  (0.2s)
+    358   200    200
+    358  reserve P222 -> 201  (0.2s)
+    359   200    200
+    359  reserve P223 -> 201  (0.2s)
+
+== summary
+  live statuses: [200] (must be only 200)
+  ready first non-200 at t=53 s; back to 200 at t=296 s
+  reserve status counts: {201: 115, 503: 109}
+  reserve 5xx other than 503: 0 | transport failures (status 0): 0
+  first reserve 503 sent at t=53 s; first 201 after recovery at t=298 s
+  audit: 115 seats returned 201, 115 seats confirmed, invariant 255+0+115==370  ->  PASS

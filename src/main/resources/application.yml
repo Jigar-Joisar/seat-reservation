@@ -37,6 +37,12 @@ spring:
   sql:
     init:
       mode: always
+  task:
+    scheduling:
+      # The hold sweeper can block for the full 60 s connection timeout during a database outage. It must not
+      # share a thread with DbHealthMonitor, or the circuit breaker cannot open until the sweeper gives up.
+      pool:
+        size: 4
   autoconfigure:
     exclude: org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
 
