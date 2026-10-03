@@ -119,11 +119,11 @@ The test suites (`src/test/java/com/seatreservation`):
 
 ```bash
 ./burst.sh http://localhost:8080                 # or https://<live-url>; the scheme is optional
-./burst.py <BASE_URL> [--scale 1.0] [--only 2,5,8] [--admin-secret S] [--hold-ttl N] [--seed 7]
+./burst.py <BASE_URL> [--scale 1.0] [--only 2,5,8] [--admin-secret S] [--hold-ttl N] [--seed 7] [--report run.json] [--insecure]
 HOLD_TTL_SECONDS=3 ./run.sh                      # start the server like this to also run the hold-expiry scenarios
 ```
 
-Stdlib-only Python; exit code is non-zero if any check fails. It verifies everything **from the outside over HTTP**: outcome distributions, the show invariant, readiness during load, latency percentiles, a full **audit** (every reservation is fetched and cross-checked against the seat map: no seat in two live reservations, seat map equals the union of live reservations, statuses agree, nobody above the limit) and finally metric reconciliation. `--scale 0.2` gives a quick smoke run (about 10 s); `--only` runs selected scenarios. Each run uses unique user ids, so it can be repeated against the same instance.
+Stdlib-only Python; exit code is non-zero if any check fails. It verifies everything **from the outside over HTTP**: outcome distributions, the show invariant, readiness during load, latency percentiles, a full **audit** (every reservation is fetched and cross-checked against the seat map: no seat in two live reservations, seat map equals the union of live reservations, statuses agree, nobody above the limit) and finally metric reconciliation. `--scale 0.2` gives a quick smoke run (about 10 s); `--only` runs selected scenarios. Each run uses unique user ids, so it can be repeated against the same instance. Every scenario prints its start time, duration and call count, and the summary ends with a per-scenario timing table and the total run time; `--report run.json` also writes these (plus outcomes and latency percentiles) as JSON for evidence. `--insecure` skips TLS verification for machines with a broken local CA bundle.
 
 | # | Scenario | What must hold |
 |---|---|---|

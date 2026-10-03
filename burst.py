@@ -88,8 +88,10 @@ def main():
     ap.add_argument("--only", default="", help="comma separated scenario numbers to run (default: all)")
     ap.add_argument("--hold-ttl", type=float, default=None, help="override auto-detected hold TTL in seconds")
     ap.add_argument("--seed", type=int, default=7)
+    ap.add_argument("--report", default="", help="write a JSON report (per-scenario timings, outcomes, latency) to this path")
     ap.add_argument("--insecure", action="store_true", help="skip TLS certificate verification (last resort for broken local CA bundles)")
     a = ap.parse_args()
+    sys.stdout.reconfigure(line_buffering=True)
     a.base_url = a.base_url.rstrip("/")
     api = Client(a.base_url, a.insecure)
     only = {int(x) for x in a.only.split(",") if x.strip()}
@@ -181,10 +183,22 @@ def main():
 
     cur = {"n": None}
 
+    DUR = {}          # scenario number -> (seconds, reserve/hold calls made)
+    RUN_T0 = time.time()
+    RUN_START = datetime.datetime.now().astimezone()
+
+    def close_scenario():
+        if cur["n"] and cur.get("t0") is not None:
+            DUR[cur["n"]] = (time.time() - cur["t0"], len(OUT) - cur["out0"])
+            print(f"   [time] scenario {cur['n']} took {DUR[cur['n']][0]:.1f}s ({DUR[cur['n']][1]} reserve/hold calls)")
+        cur["t0"] = None
+
     def scenario(n, title):
         if only and n not in only: return False
-        print(f"\n== {n}. {title}")
+        close_scenario()
+        print(f"\n== {n}. {title}   [{datetime.datetime.now().astimezone().strftime('%H:%M:%S')}]")
         cur["n"] = n
+        cur["t0"], cur["out0"] = time.time(), len(OUT)
         results.append([n, title, 0])
         return True
 
@@ -566,6 +580,7 @@ def main():
         check(confirm(h["reservation_id"], own)[0] == 200 and api.call("POST", f"/reservations/{h['reservation_id']}/confirm", tok(own))[0] == 200, "confirm is idempotent")
 
     # ------------------------------------------------------------------ 14
+    close_scenario()
     cur["n"] = None
     print("\n== metrics reconciliation (assumes no other traffic hit the service meanwhile)")
     time.sleep(0.6)
@@ -588,7 +603,19 @@ def main():
     print("\n== SUMMARY")
     print(f"   total reserve/hold calls: {len(OUT)}   overall latency ms  p50={pct(LAT,.5)*1000:.0f} p95={pct(LAT,.95)*1000:.0f} p99={pct(LAT,.99)*1000:.0f}")
     print("   overall outcomes:", dict(dist([(s_, js) for _, s_, js in OUT])))
-    for n, title, f in results: print(f"   [{'FAIL' if f else 'ok  '}] {n}. {title}" + (f"  ({f} failed checks)" if f else ""))
+    total_s = time.time() - RUN_T0
+    print(f"   started {RUN_START.strftime('%Y-%m-%d %H:%M:%S %Z')}   finished {datetime.datetime.now().astimezone().strftime('%H:%M:%S')}   total {total_s:.1f}s")
+    for n, title, f in results:
+        d = DUR.get(n)
+        print(f"   [{'FAIL' if f else 'ok  '}] {n}. {title}" + (f"  ({f} failed checks)" if f else "") + (f"  -- {d[0]:.1f}s, {d[1]} calls" if d else ""))
+    if a.report:
+        with open(a.report, "w") as fh:
+            json.dump({"target": a.base_url, "run": RUN, "scale": a.scale, "started": RUN_START.isoformat(), "total_seconds": round(total_s, 1),
+                       "reserve_hold_calls": len(OUT), "latency_ms": {"p50": round(pct(LAT, .5) * 1000), "p95": round(pct(LAT, .95) * 1000), "p99": round(pct(LAT, .99) * 1000)},
+                       "outcomes": {str(k): v for k, v in dist([(s_, js) for _, s_, js in OUT]).items()}, "failed_checks": len(fails),
+                       "scenarios": [{"n": n, "title": t, "failed_checks": f, "seconds": round(DUR[n][0], 1) if n in DUR else None,
+                                      "calls": DUR[n][1] if n in DUR else None} for n, t, f in results]}, fh, indent=2)
+        print(f"   report written to {a.report}")
     if fails:
         print(f"\n   {len(fails)} CHECK(S) FAILED"); sys.exit(1)
     print("\n   ALL CHECKS PASSED")
