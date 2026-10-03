@@ -19,10 +19,12 @@ spring:
     mapper:
       allow-coercion-of-scalars: false
   datasource:
+    # DATABASE_URL accepts a JDBC URL (jdbc:h2:... / jdbc:postgresql://...) or a
+    # postgres://user:pass@host:port/db string (Render/Heroku style) - see
+    # PostgresUrlInitializer. Driver is detected from the URL.
     url: ${DATABASE_URL:jdbc:h2:file:./data/seats;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;LOCK_TIMEOUT=15000;WRITE_DELAY=0;DB_CLOSE_ON_EXIT=FALSE}
-    driver-class-name: org.h2.Driver
-    username: sa
-    password:
+    username: ${DATABASE_USER:sa}
+    password: ${DATABASE_PASSWORD:}
     hikari:
       maximum-pool-size: ${DB_POOL_SIZE:32}
       minimum-idle: 8

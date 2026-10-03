@@ -14,7 +14,11 @@ export PER_USER_LIMIT="${PER_USER_LIMIT:-4}"
 export HOLD_TTL_SECONDS="${HOLD_TTL_SECONDS:-300}"
 export HOLD_SWEEP_MS="${HOLD_SWEEP_MS:-5000}"
 export DB_POOL_SIZE="${DB_POOL_SIZE:-32}"
+# DATABASE_URL accepts a JDBC URL or postgres://user:pass@host:port/db (Render style).
+# For jdbc:postgresql:// URLs without embedded credentials also set DATABASE_USER / DATABASE_PASSWORD.
 export DATABASE_URL="${DATABASE_URL:-jdbc:h2:file:./data/seats;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;LOCK_TIMEOUT=15000;WRITE_DELAY=0;DB_CLOSE_ON_EXIT=FALSE}"
+[ -n "${DATABASE_USER:-}" ] && export DATABASE_USER
+[ -n "${DATABASE_PASSWORD:-}" ] && export DATABASE_PASSWORD
 JAVA_OPTS="${JAVA_OPTS:--XX:MaxRAMPercentage=75 -XX:+UseSerialGC}"
 JAR=target/seat-reservation-1.0.0.jar
 

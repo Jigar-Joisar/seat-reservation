@@ -1,13 +1,32 @@
 services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: seat_reservation
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD:-dev-pg-password}
+      POSTGRES_DB: seat_reservation
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U seat_reservation -d seat_reservation"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    volumes:
+      - pg-data:/var/lib/postgresql/data
+
   app:
     build: .
     ports:
       - "8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
     environment:
+      # postgres:// form, same as Render hands out; the app converts it to JDBC.
+      DATABASE_URL: postgres://seat_reservation:${DATABASE_PASSWORD:-dev-pg-password}@db:5432/seat_reservation
+      DB_POOL_SIZE: "16"
       JWT_SECRET: ${JWT_SECRET:-dev-only-jwt-secret-change-me}
       ADMIN_SECRET: ${ADMIN_SECRET:-dev-admin-secret}
       PER_USER_LIMIT: "4"
-    volumes:
-      - seat-data:/app/data
+
 volumes:
-  seat-data:
+  pg-data:

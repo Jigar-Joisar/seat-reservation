@@ -8,9 +8,9 @@ A small JSON HTTP service that sells **assigned seats** for an event and stays c
 * declines are `4xx` domain outcomes, never `5xx`
 * `available + held + confirmed == total_seats` at every moment
 
-Java 17 · Spring Boot 3.2 · JDBC + H2 · JWT auth · Prometheus metrics · structured JSON logs · Swagger UI
+Java 17 · Spring Boot 3.2 · plain JDBC · PostgreSQL in deployment (H2 locally) · JWT auth · Prometheus metrics · structured JSON logs · Swagger UI
 
-**Repo:** https://github.com/Jigar-Joisar/seat-reservation  ·  **Live URL:** _<fill in after deploy>_  ·  **Metrics:** `<URL>/actuator/prometheus`  ·  **Logs:** _<platform log URL / recording>_
+**Repo:** https://github.com/Jigar-Joisar/seat-reservation  ·  **Live URL:** https://seat-reservation-9zhl.onrender.com  ·  **Metrics:** `/actuator/prometheus`  ·  **Logs:** Render dashboard Logs tab (JSON, `request_id` on every line)
 
 Design write-up (atomic mechanism, locking, idempotency, holds, CAP, paging, AI usage): [WRITEUP.md](WRITEUP.md) · Full API guide: [docs/API.md](docs/API.md)
 
@@ -51,8 +51,9 @@ Every setting has a default. Override with environment variables, a `.env` file 
 | `PER_USER_LIMIT` | `4` | default max seats per user per show (a show can override it) |
 | `HOLD_TTL_SECONDS` | `300` | how long a `hold` lasts before the seats are released |
 | `HOLD_SWEEP_MS` | `5000` | how often expired holds are swept |
-| `DB_POOL_SIZE` | `32` | JDBC connection pool size |
-| `DATABASE_URL` | file-backed H2 in `./data` (`WRITE_DELAY=0` for crash durability) | JDBC URL |
+| `DB_POOL_SIZE` | `32` (`16` on Render) | JDBC connection pool size |
+| `DATABASE_URL` | file-backed H2 in `./data` (`WRITE_DELAY=0` for crash durability) | JDBC URL **or** `postgres://user:pass@host:port/db` (Render/Heroku style, auto-converted) |
+| `DATABASE_USER` / `DATABASE_PASSWORD` | `sa` / empty | credentials for `jdbc:` URLs that don't embed them |
 | `JAVA_OPTS` | `-XX:MaxRAMPercentage=75 -XX:+UseSerialGC` | JVM flags (`run.sh`) |
 | `FRESH_DB=1` | off | `run.sh` only: delete `./data` before starting |
 
@@ -153,9 +154,9 @@ Sanity check of the checker itself: removing the `AND status = 'available'` guar
 
 ## Deployment
 
-The `Dockerfile` is a multi-stage build (Maven, then a non-root JRE image with a readiness `HEALTHCHECK`). `render.yaml` is a Render blueprint (Docker web service, health check `/health/ready`, generated secrets); any Docker host works.
+The `Dockerfile` is a multi-stage build (Maven, then a non-root JRE image with a readiness `HEALTHCHECK`). `render.yaml` is a Render blueprint: a Docker web service (health check `/health/ready`, generated `JWT_SECRET`/`ADMIN_SECRET`) plus a free-tier Postgres wired via `DATABASE_URL`. `docker compose up --build` runs the same pairing locally: app + a real Postgres container.
 
-Checklist: set `JWT_SECRET` and `ADMIN_SECRET`; the service listens on `$PORT`. Free tiers have an **ephemeral disk**, so H2 data resets on restart or redeploy (fine for load tests; point `DATABASE_URL` at a persistent volume to keep data). The service is single-instance by design (embedded database); see [WRITEUP.md](WRITEUP.md) for the Postgres migration path.
+Checklist: the service listens on `$PORT`; with the blueprint, `DATABASE_URL`, `JWT_SECRET` and `ADMIN_SECRET` are set automatically. The service is single-instance by design (a second instance would not share in-memory metric counters); see [WRITEUP.md](WRITEUP.md) for the reasoning.
 
 ## Restarts, crashes and cold starts
 
@@ -169,7 +170,7 @@ Verified by killing the process with `kill -9` and restarting against the same d
 * **Metrics gauges** are re-registered for existing shows at startup (counters restart from zero, as usual for Prometheus).
 * **Graceful shutdown**: in-flight requests finish (`server.shutdown=graceful`).
 
-On hosting with an **ephemeral disk** (free tiers) a restart or redeploy starts with an empty database: the service comes up healthy but old shows and reservations are gone. Use a persistent volume (`DATABASE_URL=jdbc:h2:file:/data/seats;...`) or a managed database if state must survive. Free tiers may also sleep when idle; the first request after a sleep waits for the cold start, and `burst.py` retries readiness for about two minutes.
+On hosting with an **ephemeral disk** (free tiers) the local-H2 setup starts with an empty database after a restart; with `DATABASE_URL` pointing at Postgres, shows and reservations survive restarts and redeploys. Note Render's free Postgres **expires 30 days after creation** (recreate it to extend). Free web tiers also sleep when idle; the first request after a sleep waits for the cold start, and `burst.py` retries readiness for about two minutes.
 
 ## Project layout
 
@@ -179,7 +180,7 @@ src/main/java/com/seatreservation/
   service/      ReservationService (atomic decisions), ShowService, HoldExpirySweeper, metrics, stats cache
   filter/       RequestIdFilter, AccessLogFilter, AuthFilter (JWT)
   api/          DTO records, ApiException, GlobalExceptionHandler
-  config/       JwtService
+  config/       JwtService, PostgresUrlInitializer (postgres:// -> JDBC)
 src/main/resources/  application.yml, schema.sql, static/ (Swagger UI + openapi.yaml)
 src/test/            integration + stress + contract tests
 burst.py / burst.sh  load tool        run.sh  local runner        docs/API.md  API guide

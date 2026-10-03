@@ -9,6 +9,8 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 public class SeatReservationApplication {
 
     public static void main(String[] args) {
-        SpringApplication.run(SeatReservationApplication.class, args);
+        SpringApplication app = new SpringApplication(SeatReservationApplication.class);
+        app.addInitializers(new com.seatreservation.config.PostgresUrlInitializer());
+        app.run(args);
     }
 }

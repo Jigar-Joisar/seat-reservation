@@ -34,6 +34,9 @@ Only one process may use `./data` at a time (H2 file lock).
 7. Money is `long` paise; Jackson rejects floats (`accept-float-as-int: false`); price is capped so `price * seats` cannot overflow.
 8. Business outcomes must never be 5xx.
 9. Keep `WRITE_DELAY=0` in the default `DATABASE_URL`: with H2's default delay a crash can lose just-confirmed bookings.
+10. SQL must stay portable — tests run on H2 (PostgreSQL mode), deployment runs real Postgres. No vendor-specific syntax.
+11. Postgres aborts the transaction after ANY failed statement. Never let an expected constraint violation fire inside `tx.execute`: the `user_show_allocations` insert and the `DuplicateKeyException` catch in `doReserve` are deliberately outside the transaction boundary. Keep it that way.
+12. `DATABASE_URL` accepts `jdbc:` URLs and `postgres://user:pass@host/db` (Render style, converted by `config/PostgresUrlInitializer`). For `jdbc:postgresql://` without embedded credentials use `DATABASE_USER`/`DATABASE_PASSWORD`.
 
 ## Conventions
 * JSON is snake_case (Jackson global strategy). DTOs are records in `api/Dtos`.
@@ -42,4 +45,4 @@ Only one process may use `./data` at a time (H2 file lock).
 * Tests use profile `test` (in-memory H2, hold TTL 2 s, sweep 300 ms).
 
 ## Known limits
-Single instance (embedded H2); demo token issuer instead of a real IdP; ephemeral disk on free hosting tiers; Docker image not built in CI yet.
+Single instance because metric counters are per-process (correctness itself would survive multiple instances — the database owns it); demo token issuer instead of a real IdP; Render free Postgres expires after 30 days; Docker image not built in CI yet.
