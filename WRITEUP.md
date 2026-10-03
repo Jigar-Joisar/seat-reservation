@@ -28,6 +28,8 @@ The database is the single source of truth and is CP: if it is unreachable, `/he
 **Crash durability.** With Postgres, every commit is WAL-flushed before the `201` is sent. The same guarantee needed an explicit fix on local H2: its default 500 ms write delay could lose the most recent confirmed bookings in a hard crash (found by `kill -9` testing), so the default H2 URL sets `WRITE_DELAY=0`. The price on a laptop is roughly 20 % throughput. After a crash and restart the data, idempotency keys, expired-hold cleanup and metrics gauges all recover (see README, "Restarts, crashes and cold starts").
 
 ## Observability / what pages me at 2am
+**Logs.** Every request produces one JSON access line and every state change a business event, all carrying the `request_id` that is echoed in the `X-Request-ID` response header. The platform has no public log URL, so `GET /ops/logs` serves the last 2000 events from an in-memory ring buffer. It is an allow-list of fields plus pattern scrubbing, fed only by the access log and this application's loggers, and a test proves a planted JWT, the admin secret and the Authorization header never come out. The live evidence is in `docs/LIVE-TEST-REPORT.md`.
+
 - 5xx rate > 0 (`http_server_requests_seconds_count{status=~"5.."}`): by design declines are 4xx, so any 5xx is a bug or an outage.
 - `/health/ready` failing, or restarts.
 - `reservations_declined_total{reason="contention"}` rising: lock waits/timeouts, i.e. pool or DB saturation.

@@ -10,9 +10,18 @@ A small JSON HTTP service that sells **assigned seats** for an event and stays c
 
 Java 17 · Spring Boot 3.2 · plain JDBC · PostgreSQL in deployment (H2 locally) · JWT auth · Prometheus metrics · structured JSON logs · Swagger UI
 
-**Repo:** https://github.com/Jigar-Joisar/seat-reservation  ·  **Live URL:** https://seat-reservation-9zhl.onrender.com  ·  **Metrics:** `/actuator/prometheus`  ·  **Logs:** Render dashboard Logs tab (JSON, `request_id` on every line)
+| | |
+|---|---|
+| Repository | https://github.com/Jigar-Joisar/seat-reservation |
+| Live service | https://seat-reservation-9zhl.onrender.com (Swagger UI at `/`) |
+| Health | `/health/live`, `/health/ready` |
+| Metrics | `/actuator/prometheus` |
+| Recent logs (public, scrubbed) | `/ops/logs` ([what it exposes](#public-log-access)) |
+| Test evidence | [docs/LIVE-TEST-REPORT.md](docs/LIVE-TEST-REPORT.md) |
 
-Design write-up (atomic mechanism, locking, idempotency, holds, CAP, paging, AI usage): [WRITEUP.md](WRITEUP.md) · Full API guide: [docs/API.md](docs/API.md)
+The live service runs on Render's free tier: expect a cold start of up to a minute after 15 idle minutes, and about 30 requests/s of throughput.
+
+Design write-up (atomic mechanism, locking, idempotency, holds, CAP, paging, AI usage): [WRITEUP.md](WRITEUP.md) · Full API guide: [docs/API.md](docs/API.md) · Live test report: [docs/LIVE-TEST-REPORT.md](docs/LIVE-TEST-REPORT.md)
 
 ---
 
@@ -55,6 +64,7 @@ Every setting has a default. Override with environment variables, a `.env` file 
 | `DATABASE_URL` | file-backed H2 in `./data` (`WRITE_DELAY=0` for crash durability) | JDBC URL **or** `postgres://user:pass@host:port/db` (Render/Heroku style, auto-converted) |
 | `DATABASE_USER` / `DATABASE_PASSWORD` | `sa` / empty | credentials for `jdbc:` URLs that don't embed them |
 | `JAVA_OPTS` | `-XX:MaxRAMPercentage=75 -XX:+UseSerialGC` | JVM flags (`run.sh`) |
+| `PUBLIC_LOGS` | `true` | serve `GET /ops/logs`; set `false` to disable it (404) |
 | `FRESH_DB=1` | off | `run.sh` only: delete `./data` before starting |
 
 ---
@@ -75,6 +85,7 @@ Authentication is a **demo token issuer** (the challenge has no identity provide
 | `GET /reservations/{id}` | owner | view a reservation |
 | `GET /health/live`, `GET /health/ready` | none | liveness; readiness (checks the DB, 503 when down) |
 | `GET /actuator/prometheus` | none | metrics |
+| `GET /ops/logs` | none | recent structured log events, allow-listed and scrubbed |
 
 ```bash
 URL=http://localhost:8080
@@ -103,7 +114,7 @@ OpenAPI 3 spec: `GET /openapi.yaml` (source: `src/main/resources/static/openapi.
 
 | Command | What it runs |
 |---|---|
-| `make test` (`mvn test`) | 47 integration tests against a real server on a random port (in-memory H2) |
+| `make test` (`mvn test`) | 50 integration tests against a real server on a random port (in-memory H2) |
 | `make burst URL=http://localhost:8080` | the burst suite below against a running instance (local or deployed) |
 | `make lint-api` | Redocly lint of the OpenAPI spec (needs Node/npx) |
 
@@ -113,6 +124,7 @@ The test suites (`src/test/java/com/seatreservation`):
 * `ValidationAndAuthTest`: input validation (including fractional and overflowing money), error shape, token forgery/expiry/`alg=none`, admin vs user, ownership, request ids
 * `ConcurrencyStressTest`: randomized mixes of reserve/hold/confirm/cancel/replay by 40 users, crossed multi-seat orders (deadlock check), confirm racing expiry, confirm racing cancel, seat recycling, exact sold-minus-cancelled accounting, metrics reconciliation. After every scenario a **database cross-check** verifies seat/reservation/allocation consistency.
 * `ReadinessFailClosedTest`: readiness returns 503 when the DB connection is lost while liveness stays 200
+* `LogsEndpointTest`: the log endpoint finds a request by its `X-Request-ID`, never returns tokens, secrets, headers, stack traces or unknown fields, and scrubs a JWT planted in a URL
 * `OpenApiContractTest`: spec documents exactly the real endpoints, security/401/403 declarations match, error codes are real
 
 ### Burst tool (load + adversarial correctness suite)
@@ -150,7 +162,19 @@ Sanity check of the checker itself: removing the `AND status = 'available'` guar
 
 * **Health**: `/health/live` (process), `/health/ready` (database reachable, checked on a dedicated 2-connection pool so a saturated request pool never flaps readiness; 503 when down).
 * **Metrics** (`/actuator/prometheus`): `reservations_confirmed_total`, `reservations_held_total`, `reservations_cancelled_total`, `reservations_expired_total`, `reservations_declined_total{reason}`, `reservation_duration_seconds`, gauges `seats_available|held|confirmed{show_id}`.
-* **Logs**: one JSON line per request (`method, path, status, duration_ms, user_id, request_id`) plus business events (`reservation confirmed|held|cancelled`, `hold expired`) with `reservation_id` and `show_id`. `X-Request-ID` is accepted (if safe) or generated, echoed on every response, and attached to every log line.
+* **Logs** (stdout JSON, plus [a public read-only view](#public-log-access)): one JSON line per request (`method, path, status, duration_ms, user_id, request_id`) plus business events (`reservation confirmed|held|cancelled`, `hold expired`) with `reservation_id` and `show_id`. `X-Request-ID` is accepted (if safe) or generated, echoed on every response, and attached to every log line.
+
+### Public log access
+
+`GET /ops/logs?limit=200&request_id=<id>` returns the most recent events (newest last) from an in-memory buffer of 2000, so a reviewer can follow a request without platform access. For example, take the `X-Request-ID` header from any response and fetch its lines: the access line (`method`, `path`, `status`, `duration_ms`, `user_id`) and any business event (`reservation confirmed|held|cancelled`, `hold expired`).
+
+Why it is safe to expose:
+
+* **Allow-list, not block-list.** Only these fields are ever returned: `timestamp, level, logger, message, request_id, method, path, status, duration_ms, user_id, reservation_id, show_id, seats, released`. Request and response headers, bodies, `Authorization` values, the admin secret, JWTs and stack traces are never captured because the code never logs them and the endpoint could not return them anyway.
+* **Scoped sources.** Only the access log and this application's own loggers enter the buffer; Spring, Hikari and JDBC driver output (which can print connection details) does not.
+* **Scrubbing.** String values are additionally rewritten to `[redacted]` if they look like a JWT, a `Bearer` credential, a `jdbc:`/`postgres://` URL or `secret=`/`password=`/`token=` pairs, and are truncated to 300 characters. A test plants a fake JWT in a URL to prove it.
+* **What remains visible:** user ids (the demo ids chosen by the caller), seat names, reservation and show ids, request paths. Treat user ids as personal data if you plug in a real identity provider, or turn the endpoint off with `PUBLIC_LOGS=false`.
+* Reading the logs does not write log lines about itself, and the buffer is per instance and lost on restart. The platform's own log stream remains the durable record.
 
 ## Deployment
 
@@ -181,6 +205,7 @@ src/main/java/com/seatreservation/
   filter/       RequestIdFilter, AccessLogFilter, AuthFilter (JWT)
   api/          DTO records, ApiException, GlobalExceptionHandler
   config/       JwtService, PostgresUrlInitializer (postgres:// -> JDBC)
+  logging/      RingBufferAppender (recent-events buffer behind /ops/logs)
 src/main/resources/  application.yml, schema.sql, static/ (Swagger UI + openapi.yaml)
 src/test/            integration + stress + contract tests
 burst.py / burst.sh  load tool        run.sh  local runner        docs/API.md  API guide

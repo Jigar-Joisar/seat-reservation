@@ -84,6 +84,7 @@ Returns the reservation. `status` is one of `held`, `confirmed`, `cancelled`, `e
 | `GET /health/live` | process is up (does not touch the DB) |
 | `GET /health/ready` | runs `SELECT 1`; **503** `{"status":"DOWN"}` if the database is unreachable |
 | `GET /actuator/prometheus` | Prometheus metrics |
+| `GET /ops/logs?limit=200&request_id=` | recent structured log events (newest last). Allow-listed fields only, no tokens, secrets, headers or stack traces; `404` when `PUBLIC_LOGS=false`. See the README section *Public log access*. |
 
 ## 3. Idempotency in detail
 * The key identifies **one order**. Generate a fresh one per order and reuse it only to retry that order (after a timeout, a dropped connection, a 5xx or a 409 `contention`).

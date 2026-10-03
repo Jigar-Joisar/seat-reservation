@@ -1,0 +1,115 @@
+{
+  "target": "https://seat-reservation-9zhl.onrender.com",
+  "run": "ab238c0e",
+  "scale": 0.2,
+  "started": "2026-10-03T18:06:11.891918+05:30",
+  "total_seconds": 373.8,
+  "reserve_hold_calls": 8922,
+  "latency_ms": {
+    "p50": 3702,
+    "p95": 12806,
+    "p99": 18996
+  },
+  "outcomes": {
+    "201 created": 1099,
+    "409 seat_taken": 7107,
+    "200 replay/ok": 429,
+    "409 per_user_limit": 274,
+    "409 idempotency_conflict": 1,
+    "400 invalid_seat": 12
+  },
+  "failed_checks": 0,
+  "scenarios": [
+    {
+      "n": 1,
+      "title": "hot-seat storm: 500 distinct users, one seat",
+      "failed_checks": 0,
+      "seconds": 36.3,
+      "calls": 500
+    },
+    {
+      "n": 2,
+      "title": "on-sale stampede: 4000 requests, 2000 users, 500 seats, 5 hot seats, ~10% same-key retries",
+      "failed_checks": 0,
+      "seconds": 145.9,
+      "calls": 4400
+    },
+    {
+      "n": 3,
+      "title": "idempotency: duplicate storm, same key/different seats, cross-user keys",
+      "failed_checks": 0,
+      "seconds": 14.3,
+      "calls": 531
+    },
+    {
+      "n": 4,
+      "title": "per-user limit under concurrency",
+      "failed_checks": 0,
+      "seconds": 9.4,
+      "calls": 260
+    },
+    {
+      "n": 5,
+      "title": "multi-seat deadlock storm: crossed seat orders, all-or-nothing",
+      "failed_checks": 0,
+      "seconds": 2.5,
+      "calls": 60
+    },
+    {
+      "n": 6,
+      "title": "sell-out: demand far above supply, every seat sold exactly once",
+      "failed_checks": 0,
+      "seconds": 40.0,
+      "calls": 1200
+    },
+    {
+      "n": 7,
+      "title": "seat recycling: 3 seats, reserve/cancel churn by 200 users",
+      "failed_checks": 0,
+      "seconds": 7.9,
+      "calls": 240
+    },
+    {
+      "n": 8,
+      "title": "chaos mix: reserve / hold / confirm / cancel / replay / reads by 100 users",
+      "failed_checks": 0,
+      "seconds": 50.4,
+      "calls": 1259
+    },
+    {
+      "n": 9,
+      "title": "confirm vs cancel race on the same hold (30 rounds)",
+      "failed_checks": 0,
+      "seconds": 11.6,
+      "calls": 30
+    },
+    {
+      "n": 10,
+      "title": "hold expiry (needs a short TTL)",
+      "failed_checks": 0,
+      "seconds": 36.5,
+      "calls": 25
+    },
+    {
+      "n": 11,
+      "title": "hostile input and bad credentials under load",
+      "failed_checks": 0,
+      "seconds": 3.3,
+      "calls": 12
+    },
+    {
+      "n": 12,
+      "title": "cross-show isolation: same users, same seat names, two shows at once",
+      "failed_checks": 0,
+      "seconds": 12.5,
+      "calls": 400
+    },
+    {
+      "n": 13,
+      "title": "ownership, spoofing and cancel safety",
+      "failed_checks": 0,
+      "seconds": 1.4,
+      "calls": 4
+    }
+  ]
+}

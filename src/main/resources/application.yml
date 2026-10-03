@@ -55,6 +55,7 @@ app:
   max-seats-per-show: 100000
   hold-ttl-seconds: ${HOLD_TTL_SECONDS:300}
   hold-sweep-ms: ${HOLD_SWEEP_MS:5000}
+  public-logs: ${PUBLIC_LOGS:true}
 
 logging:
   level:

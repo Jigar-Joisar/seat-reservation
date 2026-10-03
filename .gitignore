@@ -50,3 +50,7 @@ data/
 
 # Local config
 .env
+
+# Python
+__pycache__/
+*.pyc

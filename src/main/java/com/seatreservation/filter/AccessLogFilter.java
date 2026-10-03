@@ -27,7 +27,7 @@ public class AccessLogFilter extends OncePerRequestFilter {
             chain.doFilter(req, res);
         } finally {
             String path = req.getRequestURI();
-            boolean noisy = path.startsWith("/actuator") || path.startsWith("/health");
+            boolean noisy = path.startsWith("/actuator") || path.startsWith("/health") || path.startsWith("/ops/logs");
             if (!noisy || res.getStatus() >= 500) {
                 log.info("request", kv("method", req.getMethod()), kv("path", path), kv("status", res.getStatus()),
                         kv("duration_ms", (System.nanoTime() - start) / 1_000_000), kv("user_id", req.getAttribute(AuthFilter.USER_ATTR)));

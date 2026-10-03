@@ -47,7 +47,7 @@ tags:
   - name: Reservations
     description: Reserve, hold, confirm and cancel seats
   - name: Ops
-    description: Health and metrics
+    description: Health, metrics and recent logs
 paths:
   /auth/token:
     post:
@@ -254,6 +254,40 @@ paths:
         '503':
           description: Database unreachable
           content: { application/json: { example: { status: DOWN, database: DOWN } } }
+  /ops/logs:
+    get:
+      tags: [Ops]
+      operationId: recentLogs
+      security: []
+      summary: Recent structured log events
+      description: |
+        The most recent request-access and business events (newest last), read from an in-memory buffer of 2000 events.
+        Safe to expose: only an allow-list of fields is returned (no headers, request bodies, tokens, secrets or stack traces),
+        string values are scrubbed of JWT/bearer/connection-URL patterns, and framework logs are never captured.
+        Every entry carries the `request_id` that is also returned in the `X-Request-ID` response header.
+        Disabled (404) when `PUBLIC_LOGS=false`.
+      parameters:
+        - name: limit
+          in: query
+          description: Maximum number of entries (1-1000)
+          schema: { type: integer, minimum: 1, maximum: 1000, default: 200 }
+        - name: request_id
+          in: query
+          description: Only entries for this request id
+          schema: { type: string }
+      responses:
+        '200':
+          description: Log entries
+          content:
+            application/json:
+              example:
+                count: 1
+                buffer_capacity: 2000
+                entries:
+                  - { timestamp: "2026-10-03T12:34:39.437Z", level: INFO, logger: access, message: request, request_id: 4ffff278-52da-4869-8117-6e676926ea29, method: POST, path: /shows/9973c587/reserve, status: 201, duration_ms: 2, user_id: alice }
+        '404':
+          description: Disabled
+          content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
   /actuator/prometheus:
     get:
       tags: [Ops]

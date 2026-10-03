@@ -8,7 +8,18 @@
         </encoder>
     </appender>
 
+    <!-- In-memory copy of recent app/access events, served (allow-listed and scrubbed) by GET /ops/logs -->
+    <appender name="RING" class="com.seatreservation.logging.RingBufferAppender">
+        <capacity>2000</capacity>
+        <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+            <includeContext>false</includeContext>
+            <includeMdc>true</includeMdc>
+            <includeStructuredArguments>true</includeStructuredArguments>
+        </encoder>
+    </appender>
+
     <root level="INFO">
         <appender-ref ref="JSON" />
+        <appender-ref ref="RING" />
     </root>
 </configuration>
