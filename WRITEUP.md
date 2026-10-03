@@ -58,9 +58,10 @@ Two booking styles share the same atomic claim. `reserve` confirms immediately. 
 
 The database is the single source of truth, and the service chooses **consistency over availability (CP)**. If the database cannot be reached, requests fail and `/health/ready` returns `503` (checked on a separate 2-connection pool so a saturated request pool cannot flap readiness); the service never answers from a cache or accepts a booking it cannot record.
 
-* **What is tested:** `ReadinessFailClosedTest` closes the readiness pool and asserts `/health/ready` is `503` while `/health/live` stays `200`.
-* **What is not tested:** a real network partition between the application and PostgreSQL while a burst is running.
-* **Known gap:** during a database outage, ordinary requests currently return a generic `500 internal_error` rather than a clean `503` with `Retry-After`. Nothing is booked incorrectly, but the status code is not ideal (see Next).
+* **Tested in-process:** `ReadinessFailClosedTest` closes the readiness pool and asserts `/health/ready` is `503` while `/health/live` stays `200`; it also closes the main pool and asserts reservations and show reads return `503 service_unavailable` with `Retry-After` while token issuing still works.
+* **Tested live:** the Render Postgres was suspended during a probe that records live, ready and a reservation attempt every second ([report](docs/LIVE-TEST-REPORT.md#database-outage-test)). The application went to readiness `503` and reservation `503` immediately, nothing was booked during the outage, and the post-outage audit passed (every `201` is a confirmed seat, no double booking). It recovered by itself when the database returned.
+* **Finding:** Render's health check is pointed at `/health/ready`, so about 16 s into the outage the platform took the instance out of rotation and clients saw Render's `502` for about 3.5 minutes instead of the application's `503` + `Retry-After`. The data stayed safe, but the graceful path was mostly hidden. Pointing the platform check at `/health/live` (keeping `/health/ready` for monitoring) would expose it; that change is recommended and not yet applied.
+* **Not tested:** a partition that drops the database while a heavy burst is in flight, and the exact time to recover after the database resumed (the resume time was not recorded).
 * **Durability.** PostgreSQL flushes each commit to its write-ahead log before the `201` is sent. On local H2 the same guarantee needed a fix: a `kill -9` test showed the default 500 ms write delay could lose the most recent confirmed bookings, so the default URL sets `WRITE_DELAY=0` (about 20 % lower throughput on a laptop). Data, idempotency keys, and expired-hold cleanup were verified to recover after a hard crash.
 * **Scaling.** The no-double-sell guarantee does not depend on the number of application instances. We still run one, because the Prometheus counters are per process and would split across instances.
 
@@ -101,18 +102,20 @@ I used an AI coding agent (Devin) heavily, working interactively in my terminal.
 * Two bursts started at once overloaded the free instance and produced 502s; those results were discarded and the harness is run as a single process.
 * A registration file for the database-URL converter was silently ignored inside the packaged jar; it was found by running the packaged jar with a bad URL and replaced with an initializer registered in `main()`.
 * One burst expectation was wrong: Render's edge returns its own `403` for SQL-injection-looking strings before the app sees them.
+* Two of its predictions were wrong and were corrected after measurement: it said the full-size run would take 11-15 minutes (it is about 35, because the suite makes about 44,000 calls, not 22,000), and it said readiness failing would leave the app serving `503` for ordinary requests (behind Render's health check the platform removed the instance instead).
 * An idempotency gap (the same key reused on a different show returned the first show's reservation) survived the first design and was found while the burst suite was being hardened; it is now fixed with a regression test.
 
 **What is verified by running, and what is not:**
-* Verified: 50 automated tests, two full local burst runs (default and short hold TTL), a hard-crash restart test, and the burst suite against the live Render deployment, which passed twice with zero 5xx (see the live report).
-* Not verified: the full-size burst (about 22,000 requests) against the free instance, a confirm winning the expiry race on the live service, a real database partition under load, and building the Docker image locally (Docker was not available; Render builds the image on every deploy).
+* Verified: 51 automated tests, two full local burst runs (default and short hold TTL), a hard-crash restart test, five live burst runs against the Render deployment (about 56,000 calls, no 5xx from the application, every counter reconciled), and a live database-outage probe with a passing audit (see the live report).
+* Reported, not hidden: the first live scale-0.5 run had one request that received no response (transport failure, cause undetermined; the clean second run and an isolated rerun did not reproduce it).
+* Not verified: the full-size burst (scale 1.0, about 44,000 calls, projected at about 35 minutes) against the free instance, a confirm winning the expiry race on the live service, a partition under heavy load, and building the Docker image locally (Docker was not available; Render builds the image on every deploy).
 
 ## Next
 
-1. **Clean `503` during a database outage**: map connection failures to `503` with `Retry-After`, and run a partition test (drop the database mid-burst).
+1. **Make the outage graceful on the platform:** point Render's health check at `/health/live`, lower Hikari's 60 s connection timeout so requests fail fast during an outage, and re-run the outage probe and the burst (the `503` + `Retry-After` mapping itself already exists and is tested).
 2. **Postgres operations:** set `lock_timeout` and `statement_timeout` on connections so one stuck lock cannot hold a pooled connection; use a paid, highly available database (the free one expires after 30 days).
 3. **Scale out safely:** move counters to a shared store or scrape per instance and aggregate, then run several application instances against one database.
 4. **Real identity:** replace the demo token issuer with an identity provider and short-lived tokens.
 5. **Abuse protection:** rate limiting per user and per IP, and a cap on the number of per-show gauges.
 6. **Observability:** distributed tracing, a Grafana dashboard, and alert rules for the six paging conditions above.
-7. **Capacity:** run the full-size burst against a larger instance to measure real headroom; the free tier handles about 33 requests/s.
+7. **Capacity:** run the full-size burst against a larger instance to measure real headroom; the free tier handles about 25-35 requests/s. Also find the cause of the single unexplained transport failure seen in one scale-0.5 run.

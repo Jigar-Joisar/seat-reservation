@@ -57,11 +57,14 @@ class Client:
         data = raw_body if raw_body is not None else (json.dumps(body) if body is not None else None)
         retryable = method == "GET" or path == "/auth/token"  # token minting is side-effect free; other POSTs are never blindly retried (outcome unknown)
         for attempt in range(3 if retryable else 1):
+            t_start = time.time()
+            idle = t_start - getattr(local, "last_used", t_start) if getattr(local, "c", None) is not None else 0.0
             try:
                 c = self._conn()
                 c.request(method, path, data, h)
                 r = c.getresponse()
                 raw = r.read().decode()
+                local.last_used = time.time()
                 try: js = json.loads(raw)
                 except ValueError: js = {"raw": raw}
                 return r.status, js, raw
@@ -69,7 +72,7 @@ class Client:
                 local.c = None
                 LAST_ERROR[0] = f"{type(e).__name__}: {e}"
                 if attempt == (2 if retryable else 0):
-                    TRANSPORT_ERRORS.append(method + " " + path)
+                    TRANSPORT_ERRORS.append(f"{method} {path} -> {type(e).__name__} after {time.time() - t_start:.1f}s (reused connection had been idle {idle:.0f}s)")
                     return 599, {"error": "transport"}, ""
         return 599, {}, ""
 
