@@ -16,10 +16,27 @@ from urllib.parse import urlparse
 
 local = threading.local()
 TRANSPORT_ERRORS = []
+LAST_ERROR = [""]
+
+
+def make_ssl_context(insecure=False):
+    """Default context; falls back to the OS CA bundle (python.org builds on macOS ship without one)."""
+    if insecure:
+        ctx = ssl.create_default_context()
+        ctx.check_hostname = False
+        ctx.verify_mode = ssl.CERT_NONE
+        return ctx
+    ctx = ssl.create_default_context()
+    if not ssl.get_default_verify_paths().cafile and not os.environ.get("SSL_CERT_FILE"):
+        for cand in ("/etc/ssl/cert.pem", "/etc/ssl/certs/ca-certificates.crt", "/etc/pki/tls/certs/ca-bundle.crt"):
+            if os.path.exists(cand):
+                return ssl.create_default_context(cafile=cand)
+    return ctx
 
 
 class Client:
-    def __init__(self, base):
+    def __init__(self, base, insecure=False):
+        self.insecure = insecure
         if "://" not in base: base = "http://" + base
         u = urlparse(base)
         self.https = u.scheme == "https"
@@ -28,7 +45,7 @@ class Client:
     def _conn(self):
         c = getattr(local, "c", None)
         if c is None:
-            c = (http.client.HTTPSConnection(self.host, self.port, timeout=120, context=ssl.create_default_context())
+            c = (http.client.HTTPSConnection(self.host, self.port, timeout=120, context=make_ssl_context(self.insecure))
                  if self.https else http.client.HTTPConnection(self.host, self.port, timeout=120))
             local.c = c
         return c
@@ -48,8 +65,9 @@ class Client:
                 try: js = json.loads(raw)
                 except ValueError: js = {"raw": raw}
                 return r.status, js, raw
-            except (http.client.HTTPException, OSError):
+            except (http.client.HTTPException, OSError) as e:
                 local.c = None
+                LAST_ERROR[0] = f"{type(e).__name__}: {e}"
                 if attempt == (2 if retryable else 0):
                     TRANSPORT_ERRORS.append(method + " " + path)
                     return 599, {"error": "transport"}, ""
@@ -70,9 +88,10 @@ def main():
     ap.add_argument("--only", default="", help="comma separated scenario numbers to run (default: all)")
     ap.add_argument("--hold-ttl", type=float, default=None, help="override auto-detected hold TTL in seconds")
     ap.add_argument("--seed", type=int, default=7)
+    ap.add_argument("--insecure", action="store_true", help="skip TLS certificate verification (last resort for broken local CA bundles)")
     a = ap.parse_args()
     a.base_url = a.base_url.rstrip("/")
-    api = Client(a.base_url)
+    api = Client(a.base_url, a.insecure)
     only = {int(x) for x in a.only.split(",") if x.strip()}
     RUN = "%x" % random.getrandbits(32)
     S = lambda n: max(1, int(n * a.scale))
@@ -177,7 +196,10 @@ def main():
         if s == 200: break
         time.sleep(2)
     check(s == 200, "readiness /health/ready == 200")
-    if s != 200: sys.exit(1)
+    if s != 200:
+        print(f"   last transport error: {LAST_ERROR[0] or 'none (service answered but not 200)'}")
+        if "CERTIFICATE_VERIFY_FAILED" in LAST_ERROR[0]: print("   TLS verification failed: install your OS/Python CA certificates, set SSL_CERT_FILE, or pass --insecure")
+        sys.exit(1)
     s, js, _ = api.call("POST", "/auth/token", body={"user_id": "burst-admin", "admin_secret": a.admin_secret})
     if s != 200: print("cannot get admin token", s, js); sys.exit(1)
     admin = js["token"]
@@ -490,7 +512,8 @@ def main():
             ("wrong types", lambda: api.call("POST", f"/shows/{show11}/reserve", good, raw_body='{"seats":"A1","idempotency_key":5}'), {400}),
             ("missing key", lambda: api.call("POST", f"/shows/{show11}/reserve", good, {"seats": ["A1"]}), {400}),
             ("duplicate seats", lambda: api.call("POST", f"/shows/{show11}/reserve", good, {"seats": ["A1", "A1"], "idempotency_key": "d"}), {400}),
-            ("injection-ish seat", lambda: api.call("POST", f"/shows/{show11}/reserve", good, {"seats": ["A1'; DROP TABLE seats;--"], "idempotency_key": "i"}), {400}),
+            # edge proxies (e.g. Render) may block SQL-looking payloads with their own 403 before the app sees them; either rejection is fine
+            ("injection-ish seat", lambda: api.call("POST", f"/shows/{show11}/reserve", good, {"seats": ["A1'; DROP TABLE seats;--"], "idempotency_key": "i"}), {400, 403}),
             ("unknown show", lambda: api.call("POST", "/shows/nope/reserve", good, body_ok), {404}),
             ("fractional price", lambda: api.call("POST", "/shows", admin, raw_body='{"name":"x","seats":["A1"],"price_paise":99.5}'), {400}),
             ("giant price", lambda: api.call("POST", "/shows", admin, {"name": "x", "seats": ["A1"], "price_paise": 9223372036854775807}), {400}),
