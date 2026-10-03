@@ -12,10 +12,12 @@ Evidence that the deployed service behaves correctly, gathered on 2026-10-03 aga
 
 ## Summary
 
-* **Correctness held in every run.** Across the five runs in the table below (about 56,000 reserve/hold calls) no seat was ever sold twice, no user exceeded the limit, no idempotent retry booked twice, and every client-observed outcome equalled the server's Prometheus counters. **No load run produced a 5xx from the application.** The only 5xx-class responses seen were the deliberate `503` during the database outage test and Render's own `502`s during that outage.
+* **Correctness held in every run.** Across the six runs in the table below (about 94,000 reserve/hold calls) no seat was ever sold twice, no user exceeded the limit, no idempotent retry booked twice, and every client-observed outcome equalled the server's Prometheus counters. **The application produced no 5xx in any load run**: the server-side 5xx series is empty after every run. The only 5xx-class responses were the deliberate `503` during the outage test, Render's `502`s during that outage, and one `520` in the full-size run (see below).
 * **The scale-0.5 suite passed cleanly on its second run** (19,779 calls, 650 s, 98 checks, 0 failed). Its first run had **one unexplained transport failure** (a request that got no response and timed out client-side), reported below as a failed run.
+* **The full-size suite (scale 1.0) was run once: 37,854 calls in 1,270 s (21 minutes), 98 checks passed and 1 failed.** The one failure is a single response with status `520` out of 6,000 in the sell-out scenario. The application recorded no 5xx and the sell-out itself was exact. It is reported as a failed run, not a pass.
+* **Two single requests (one in each of the two largest runs) were lost between the client and the application** and left no trace in the server's counters. The cause is not established.
 * **A database outage is survived without data damage, but not gracefully on Render.** The application fails closed (readiness `503`, reservations `503` with `Retry-After`, nothing booked during the outage), yet Render's health check on `/health/ready` pulled the whole instance out of rotation, so clients saw `502` for about 3.5 minutes. See *Database outage test*.
-* **Throughput of the free instance is about 25-35 requests/s.** The full-size suite (scale 1.0, about 44,000 calls) was **not run**; the projected duration is about 35 minutes.
+* **Throughput of the free instance is about 25-35 requests/s.**
 
 ## Runs
 
@@ -26,8 +28,9 @@ Evidence that the deployed service behaves correctly, gathered on 2026-10-03 aga
 | 2026-10-03 20:16 IST | 0.5 | 300 s | 19,767 | 844 s | p50 3.9 / p99 20.0 s | **FAIL** | one transport failure in scenario 7, see below |
 | 2026-10-03 20:57 IST | 0.5, scenario 7 only | 300 s | 601 | 95 s | p50 4.2 / p99 16.7 s | PASS | rerun of the failed scenario in isolation (terminal output only) |
 | 2026-10-03 21:01 IST | 0.5 | 300 s | 19,779 | 650 s | p50 3.6 / p99 20.8 s | PASS | **the reference run**; details below |
+| 2026-10-03 21:38 IST | 1.0 (full size) | 300 s | 37,854 | 1,270 s | p50 3.9 / p99 21.1 s | **FAIL** | one `520` response in scenario 6; server-side clean, see below |
 
-Artifacts: [scale 0.2, 8 s TTL](evidence/burst-live-2026-10-03.txt) ([json](evidence/burst-live-2026-10-03.json), [metrics](evidence/metrics-live-after-burst.prom)) · [scale 0.15](evidence/burst-live-s015-2026-10-03.txt) · [scale 0.5 run 1, failed](evidence/burst-live-s050-run1-FAILED-2026-10-03.txt) ([metrics](evidence/metrics-after-s050-run1.prom)) · [scale 0.5 run 2](evidence/burst-live-s050-run2-2026-10-03.txt) ([json](evidence/burst-live-s050-run2-2026-10-03.json), [metrics](evidence/metrics-after-s050-run2.prom)).
+Artifacts: [scale 0.2, 8 s TTL](evidence/burst-live-2026-10-03.txt) ([json](evidence/burst-live-2026-10-03.json), [metrics](evidence/metrics-live-after-burst.prom)) · [scale 0.15](evidence/burst-live-s015-2026-10-03.txt) · [scale 0.5 run 1, failed](evidence/burst-live-s050-run1-FAILED-2026-10-03.txt) ([metrics](evidence/metrics-after-s050-run1.prom)) · [scale 0.5 run 2](evidence/burst-live-s050-run2-2026-10-03.txt) ([json](evidence/burst-live-s050-run2-2026-10-03.json), [metrics](evidence/metrics-after-s050-run2.prom)) · [scale 1.0, failed](evidence/burst-live-s100-FAILED-2026-10-03.txt) ([json](evidence/burst-live-s100-FAILED-2026-10-03.json), [metrics](evidence/metrics-after-s100.prom)).
 
 ## Reference run: scale 0.5, run 2
 
@@ -103,6 +106,51 @@ What the evidence shows:
 
 What is **not** known: whether the request never reached the application (for example a keep-alive connection silently dropped by Render's edge, so the read waits until the timeout) or stalled inside it. The no-held-connection evidence argues against a database stall, but this was not proven. The burst client now records the exception type, elapsed time and connection idle time for any transport failure, so a recurrence will identify itself. One failure in two full 0.5 runs is reported as it happened; the problem is neither declared fixed nor reproduced.
 
+## Full-size run (scale 1.0)
+
+37,854 reserve/hold calls in 1270 s (21:38:09-21:59:19 IST), single process, no other traffic. **98 checks passed, 1 failed.**
+
+The failed check is `zero 5xx` in scenario 6 (sell-out, 6,000 calls): one response had status **520**. Everything else in that scenario held: exactly 200 `201`s for 200 seats, `confirmed 200 == 200`, `available 0`, no seat in two reservations, and `number of 201s (200) == seats confirmed (200)`, so the lost request neither booked a seat nor lost one.
+
+| Outcome | Count |
+|---|---|
+| `201 created` | 1724 |
+| `409 seat_taken` | 34132 |
+| `409 per_user_limit` | 1449 |
+| `200 replay/ok` | 487 |
+| `409 idempotency_conflict` | 1 |
+| `520` | 1 |
+| `400 invalid_seat` | 60 |
+
+Latency: p50 3908 ms, p95 14197 ms, p99 21094 ms. The 22,000-call stampede ran at 35 requests/s (p50 4.6 s, p99 21.6 s, max 48.4 s); the invariant held on all 196 samples taken during it, `/health/ready` returned `200` on all 196 probes, and the hall sold out exactly (500 confirmed of 500).
+
+| # | Scenario | Seconds | Calls | Result |
+|---|---|---|---|---|
+| 1 | hot-seat storm | 40.3 | 500 | PASS |
+| 2 | on-sale stampede | 662.4 | 22000 | PASS |
+| 3 | idempotency | 14.9 | 531 | PASS |
+| 4 | per-user limit under concurrency | 46.3 | 1220 | PASS |
+| 5 | multi-seat deadlock storm | 11.4 | 300 | PASS |
+| 6 | sell-out | 176.0 | 6000 | **FAIL** |
+| 7 | seat recycling | 35.6 | 1200 | PASS |
+| 8 | chaos mix | 186.8 | 5608 | PASS |
+| 9 | confirm vs cancel race on the same hold (30 rounds) | 10.7 | 30 | PASS |
+| 10 | hold expiry (needs a short TTL) | 0.0 | 0 | PASS |
+| 11 | hostile input and bad credentials under load | 14.4 | 60 | PASS |
+| 12 | cross-show isolation | 13.0 | 400 | PASS |
+| 13 | ownership, spoofing and cancel safety | 1.3 | 4 | PASS |
+
+Metric reconciliation (asserted by the harness, all matched): confirmed 1696 (1647 reserve `201` + 49 hold confirmations), held 77, `seat_taken` 34132, `per_user_limit` 1449, `idempotent_replay` 487, `idempotency_conflict` 1, `invalid_seat` 60, `hold_expired` 22, `contention` 0. The Prometheus snapshot taken afterwards ([file](evidence/metrics-after-s100.prom)) has no `status="5xx"` series, zero Hikari connection timeouts and zero pending or active connections.
+
+What the `520` is and is not:
+
+* `520` is not a status the application emits (it returns `500` or `503` for its own failures, and its server-side 5xx series is empty). It is an edge-proxy status for an origin that closed the connection or returned an empty or invalid response.
+* The server's counters match the client's observations exactly, so the application did not complete that request as a counted outcome. Like the scale-0.5 transport failure, it left no trace behind.
+* Process uptime (1,478 s at 16:32:53 UTC) shows the service cold-started at the very start of the run (the harness waited about a minute for readiness) and ran continuously through all of it, so a restart does not explain it.
+* **Cause not established.** One candidate is a keep-alive race between Render's proxy and Tomcat, which is configured with a 60 s keep-alive timeout (a proxy reusing a connection the origin has just closed gets an empty reply). Another is plain edge flakiness. Neither has been tested. Raising Tomcat's keep-alive timeout and request limit is a cheap experiment; until it is run and the failure stops recurring, this is only a hypothesis.
+
+Across the three largest runs (scale 0.5 twice and scale 1.0, about 77,400 calls) two requests were lost this way, and the second scale-0.5 run (19,779 calls) was clean.
+
 ## Database outage test
 
 Procedure: `outage_probe.py` against the live service for 360 s (one reservation attempt, `/health/live` and `/health/ready` per second); the Render Postgres was suspended about 10 s in and resumed later. Artifacts: [timeline](evidence/outage-probe-live-2026-10-03.txt), [json](evidence/outage-probe-live-2026-10-03.json).
@@ -119,7 +167,7 @@ Result of the probe: 131 reservations returned `201`, 1 returned `503`, 212 retu
 Findings:
 
 1. **Data safety held.** Nothing was booked incorrectly, and the application degraded to `503` the moment the database disappeared.
-2. **The platform health check defeats graceful degradation.** `render.yaml` sets `healthCheckPath: /health/ready`. About 16 s after readiness began failing, Render stopped routing to the instance, so almost all clients saw `502` instead of the application's `503` + `Retry-After`. Process uptime read afterwards implies the process was (re)started at about 14:05:05 UTC, which is consistent with Render replacing the instance; this was inferred from uptime, not confirmed from Render's event log.
+2. **The platform health check defeats graceful degradation.** `render.yaml` sets `healthCheckPath: /health/ready`. Render's documented rule is that an instance failing consecutive health checks for 15 s is taken out of rotation, and one failing for 60 s is restarted ([Render health checks](https://render.com/docs/health-checks)). The measurement matches: about 16 s after readiness began failing, Render stopped routing to the instance, so almost all clients saw `502` instead of the application's `503` + `Retry-After`. Process uptime read afterwards implies the process was (re)started at about 14:05:05 UTC, which is consistent with Render replacing the instance; this was inferred from uptime, not confirmed from Render's event log.
 3. **Recommended change (not yet applied):** point the platform health check at `/health/live` and keep `/health/ready` for monitoring. A database outage would then surface to clients as a clean `503`. Requests would wait up to Hikari's 60 s connection timeout before failing, so that timeout would need lowering and the burst re-run.
 4. The exact moment the database was resumed was not recorded, so time-to-recover after resume is not stated.
 5. Before this change was made the application returned a generic `500` for ordinary requests during an outage; it now returns `503` (covered by `ReadinessFailClosedTest`).
@@ -130,9 +178,9 @@ The platform offers no public log URL, so the service exposes `GET /ops/logs` (R
 
 ## Limits of this evidence (stated plainly)
 
-* **Full size not run.** The default scale (1.0, about 44,000 calls) was not run against the free instance; projected at about 35 minutes. Scale 0.5 is the largest live run.
+* **No clean full-size run.** The default scale (1.0, 37,854 calls, 21 minutes) was run once and ended with one `520` response (above). It has not been repeated.
 * **Hold expiry live.** It was exercised once, at scale 0.2 with an 8 s TTL, where all 23 timed confirms arrived after expiry (0 won). That verifies that expired holds stay expired and nothing is resurrected, but not a confirm winning the race on the live service; that case is covered by the local short-TTL runs and `ConcurrencyStressTest`. The scale-0.5 runs used the production TTL of 300 s, so scenario 10 was skipped.
-* **One unexplained transport failure** in the first scale-0.5 run, described above.
+* **Two unexplained lost requests**: one transport failure in the first scale-0.5 run and one `520` in the full-size run, both described above.
 * **Outage test:** one run; the resume time was not recorded; Render's event log was not captured.
 * Render's edge returned its own `403` for SQL-injection-looking payloads before they reached the service in the earlier runs; the burst accepts `400` or `403` for that single case.
 * Render's free PostgreSQL expires 30 days after creation.
