@@ -1,44 +1,118 @@
-# Write-up
+# Write-up: Seat Reservation at Scale
+
+A JSON HTTP service that sells assigned seats and stays correct under load: a seat is never sold twice, a user never exceeds the per-show limit, and a retried request never books twice. This document covers the design decisions and where each deliverable lives.
+
+## Deliverables
+
+| # | Deliverable | Where |
+|---|---|---|
+| 1 | Public Git repo with full commit history | https://github.com/Jigar-Joisar/seat-reservation (`main`, see [commit history](#1-commit-history)) |
+| 2 | Live URL | https://seat-reservation-9zhl.onrender.com (Swagger UI at `/`, health at `/health/ready`) |
+| 3 | One-command burst script | `./burst.sh <BASE_URL>` or `make burst URL=<BASE_URL>`; usage in the [README](README.md#burst-tool-load--adversarial-correctness-suite) |
+| 4 | Metrics and logs access | Metrics: `/actuator/prometheus`. Logs: `/ops/logs` (public, scrubbed) and structured JSON on stdout. See [Observability](#observability-and-what-pages-me-at-2am) and the [README](README.md#public-log-access) |
+| 5 | This write-up | below |
+
+Evidence that the deployed service behaves correctly is in [docs/LIVE-TEST-REPORT.md](docs/LIVE-TEST-REPORT.md) with the raw burst output, JSON report and Prometheus snapshot in `docs/evidence/`.
+
+### 1. Commit history
+The history shows the real order of work: a baseline scaffold, then a rewrite of the core, then features and hardening each added with their tests (timed holds, run script, Swagger UI, validation and concurrency test suites, the adversarial burst suite, crash-durability fix, Postgres support, per-scenario timing, the log endpoint, the live report). Two honest caveats: the baseline commit was made shortly before the work began, and the core rewrite (JDBC, conditional UPDATE, allocation lock, scoped idempotency, JWT auth, readiness, metrics) landed as one large commit rather than one per feature, because those pieces were built and tested together.
 
 ## The atomic decision
-Each seat is claimed with one conditional statement, inside a READ_COMMITTED transaction:
 
-`UPDATE seats SET status='confirmed', user_id=?, reservation_id=? WHERE show_id=? AND seat_number=? AND status='available'`
+**Mechanism.** Each seat is claimed by a single conditional statement inside a `READ_COMMITTED` transaction:
 
-The row lock plus the `WHERE status='available'` guard means that when 500 buyers race for A12, the database serializes them on that row; the first commit flips it, and every later UPDATE re-evaluates the predicate against the committed row and matches 0 rows. Rowcount 1 = winner, 0 = clean 409 `seat_taken`. There is no read-then-write gap and no application-level lock, so it also holds with multiple app instances against one database.
-Verified by `ReservationApiTest.hotSeatStormExactlyOneWinner` (500 users, 1 winner, 499×409, 0×5xx) and by `burst.py`.
+```sql
+UPDATE seats SET status = ?, user_id = ?, reservation_id = ?
+WHERE show_id = ? AND seat_number = ? AND status = 'available'
+```
 
-**Multi-seat / deadlock.** Seats are de-duplicated and sorted, and updated in that order inside one transaction. Two requests `[A1,A2]` and `[A2,A1]` therefore both touch A1 first; no cycle is possible. If any seat's UPDATE hits 0 rows the transaction rolls back (all-or-nothing). Lock/deadlock timeouts from the DB are mapped to a 409 `contention` (retryable), never a 500.
+A row count of 1 means this request won the seat; 0 means it was already taken and the request returns a clean `409 seat_taken`. There is no read-then-write step.
 
-**Per-user limit.** A `user_show_allocations(show_id,user_id,seats_held)` row is locked `SELECT … FOR UPDATE` at the start of each reserve/cancel. All of one user's operations on one show serialize on it, so `seats_held + n > limit` is a race-free check (counts seats, not reservations). Test: 10 parallel single-seat reserves on limit 4 -> exactly 4 wins.
+**Why it is race-free.** An `UPDATE` takes a row lock. When 500 requests target the same seat, the database serializes them on that row. The first to commit flips `status`; every later `UPDATE` waits for the lock, then re-evaluates the `WHERE` clause against the committed row (this is how both PostgreSQL and H2 behave under `READ_COMMITTED`) and matches nothing. So at most one request can ever claim a seat, regardless of how many application threads or instances are running, because the guarantee lives in the database and not in application memory or locks. We deliberately avoid `SERIALIZABLE`, which on H2 caused lock storms.
+
+**Evidence.** `ReservationApiTest.hotSeatStormExactlyOneWinner` (500 users, one seat: exactly one `201`, 499 `409`, no 5xx), the burst's scenario 1 locally and on the live service (`1 x 201, 499 x 409`), and a full external audit after the larger scenarios that fetches every reservation and checks that no seat appears in two live reservations. We also checked that the suite can fail: removing the `AND status = 'available'` guard in a throwaway copy makes it fail on "exactly one 201" and "no seat in two live reservations".
+
+**Multi-seat requests and deadlock avoidance.** Seats in a request are de-duplicated, sorted by name, and claimed in that order inside one transaction. Requests for `[A1, A2]` and `[A2, A1]` therefore both attempt `A1` first, so a lock cycle cannot form. If any seat's `UPDATE` matches zero rows, the whole transaction rolls back, so multi-seat requests are all-or-nothing and a failed request leaves nothing behind. Every other write path (confirm, cancel, expiry) uses the same lock order: allocation row, then reservation row, then seats in sorted order. Any database lock timeout or deadlock victim is mapped to a retryable `409 contention`, never a 5xx. Scenario 5 of the burst (300 users, random 2-4 seats in random order over 12 seats) produced only `201`/`409`.
+
+**Per-user limit.** Each (show, user) has a row in `user_show_allocations` holding `seats_held`. It is locked with `SELECT ... FOR UPDATE` at the start of every reserve, hold, confirm, cancel and expiry for that user and show, so all of one user's operations on a show are serialized. The check `seats_held + requested > limit` is therefore race-free, and it counts seats, not reservations. Test: ten parallel single-seat requests with a limit of 4 yield exactly 4 wins; the burst also sends eight parallel requests from each of 150 users.
 
 ## Idempotency
-Key lives in `reservations` with `UNIQUE(user_id, idempotency_key)` (scoped per user so one user's key can never return another user's reservation). The lookup is done again after taking the allocation lock, so concurrent duplicates cannot both proceed: one creates, the rest see the row and replay it (HTTP 200, `Idempotent-Replay: true`, same `reservation_id`, nothing extra moved). Bodies are compared as sorted seat sets; same key with different seats -> 409 `idempotency_conflict`. The unique constraint is the backstop: on a duplicate-key error we roll back and return the winner. A replay returns 200 rather than 201 so "exactly one 201 per seat" stays true.
+
+**Where the key is stored.** In the `reservations` table, with `UNIQUE (user_id, idempotency_key)`. Keys are scoped per user, so one user's key can never return another user's reservation. The key is accepted as `idempotency_key` in the body or an `Idempotency-Key` header.
+
+**How a request is processed exactly once.** The lookup is repeated after taking the user's allocation lock, so concurrent duplicates serialize: one creates the reservation, the others find it and replay it. The unique constraint is the backstop: if a duplicate insert ever slips through, that transaction rolls back and the winner's reservation is returned. A first success returns `201`; a replay returns `200` with the original reservation, the header `Idempotent-Replay: true`, and moves nothing. Returning `200` rather than `201` keeps "exactly one 201 per seat" true. Declined requests do not consume the key, so a client can retry after a `409`.
+
+**Same key, different body.** Seat lists are compared as sorted sets and the show id is compared too. The same key with different seats or a different show returns `409 idempotency_conflict` instead of silently returning a reservation for something else. (An earlier version let a key reused on another show return the first show's reservation; fixed with a regression test.) The burst covers 50 parallel same-key requests, 150 users sending three identical parallel requests, and same key with different seats.
 
 ## Holds and expiry
-Two ways to book. `reserve` confirms immediately. `hold` takes the same atomic conditional UPDATE but sets `status='held'` with a reservation `expires_at` (TTL, default 300s); the seat is unavailable to everyone else and counts toward the owner's limit. Then:
-- **confirm** (owner only): lock allocation row, lock reservation row, require `status='held'` and not past `expires_at`, `UPDATE seats SET status='confirmed' WHERE reservation_id=? AND status='held'`. Idempotent if already confirmed; otherwise 409 `hold_expired`.
-- **expiry sweeper** (every 5s): for each overdue held reservation, in its own transaction, lock allocation -> reservation, re-check it is still `held` and overdue, release only seats with `reservation_id=? AND status='held'`, mark `expired`, decrement `seats_held`. Racing with confirm/cancel is serialized by the reservation row lock; whoever commits first wins and the loser's conditional update/recheck is a no-op, so a confirmed seat can never be expired and an expiry can never resurrect a confirmed seat.
-- **cancel** (owner only, idempotent): releases `held` or `confirmed` seats keyed on this reservation's id, so it can never free or reassign a seat that now belongs to someone else (tested with a stale cancel after a re-book).
-Lock order is always allocation -> reservation -> seats (sorted), so none of these paths can deadlock with each other or with reserve. An expired-but-unswept hold is rejected at confirm time by the timestamp check, so correctness does not depend on sweeper latency; only seat re-availability does.
 
-## Consistency vs availability
-The database is the single source of truth and is CP: if it is unreachable, `/health/ready` returns 503 (checked on a separate 2-connection pool so a saturated request pool doesn't flap readiness) and requests fail rather than being served stale. In deployment the database is managed Postgres (Render wires `DATABASE_URL` from its own Postgres service), so the readiness probe is a genuine dependency check and shows/reservations survive restarts and redeploys. The no-double-sell guarantee is entirely in the database (conditional UPDATE + unique constraints + `FOR UPDATE`), so it would hold even with several app instances; we still run one, because the Prometheus counters are per-process and scaling out would split them. `ReadinessFailClosedTest` closes the readiness pool and asserts `/health/ready` returns 503 while `/health/live` stays 200. What is still not tested: a real network partition mid-burst (dropping the DB while load is running).
+Two booking styles share the same atomic claim. `reserve` confirms immediately. `hold` claims the seats as `held` with an `expires_at` timestamp (`HOLD_TTL_SECONDS`, default 300 s); the seats are unavailable to others and count against the owner's limit.
 
-**Crash durability.** With Postgres, every commit is WAL-flushed before the `201` is sent. The same guarantee needed an explicit fix on local H2: its default 500 ms write delay could lose the most recent confirmed bookings in a hard crash (found by `kill -9` testing), so the default H2 URL sets `WRITE_DELAY=0`. The price on a laptop is roughly 20 % throughput. After a crash and restart the data, idempotency keys, expired-hold cleanup and metrics gauges all recover (see README, "Restarts, crashes and cold starts").
+* **Confirm** (owner only): lock the allocation row, lock the reservation row, require `status = 'held'` and `expires_at` in the future, then `UPDATE seats SET status = 'confirmed' WHERE reservation_id = ? AND status = 'held'`. Confirming an already confirmed reservation is idempotent; otherwise `409 hold_expired`.
+* **Expiry sweeper** (every `HOLD_SWEEP_MS`, default 5 s): for each overdue hold, in its own transaction, lock allocation then reservation, re-check it is still `held` and overdue, release only seats where `reservation_id = ? AND status = 'held'`, mark the reservation `expired`, and decrement `seats_held`.
+* **Cancel** (owner only, idempotent): releases `held` or `confirmed` seats keyed on this reservation's id.
+* **Why a seat can never be resurrected or double-assigned.** Every release is keyed on the reservation id and the expected status, so a stale cancel or expiry cannot free a seat that now belongs to someone else (tested with a stale cancel after a re-book). Confirm racing expiry or cancel is serialized by the reservation row lock; whichever commits first wins and the loser's recheck is a no-op. A confirm that returned `200` is never undone by a later sweep.
+* **Sweeper latency does not affect correctness.** An overdue hold that has not been swept yet is rejected by the timestamp check at confirm time. Only the moment the seat becomes re-bookable depends on the sweep interval. After a crash or restart, overdue holds are released on the first sweep.
 
-## Observability / what pages me at 2am
-**Logs.** Every request produces one JSON access line and every state change a business event, all carrying the `request_id` that is echoed in the `X-Request-ID` response header. The platform has no public log URL, so `GET /ops/logs` serves the last 2000 events from an in-memory ring buffer. It is an allow-list of fields plus pattern scrubbing, fed only by the access log and this application's loggers, and a test proves a planted JWT, the admin secret and the Authorization header never come out. The live evidence is in `docs/LIVE-TEST-REPORT.md`.
+## Consistency versus availability
 
-- 5xx rate > 0 (`http_server_requests_seconds_count{status=~"5.."}`): by design declines are 4xx, so any 5xx is a bug or an outage.
-- `/health/ready` failing, or restarts.
-- `reservations_declined_total{reason="contention"}` rising: lock waits/timeouts, i.e. pool or DB saturation.
-- p99 of `reservation_duration_seconds` and Hikari pool pending.
-- Invariant drift: `seats_available+held+confirmed` vs total per show (never expected to move).
-- Business sanity: `confirmed_total − cancelled_total` should equal sum of confirmed seats; sudden zero confirms during a sale.
+The database is the single source of truth, and the service chooses **consistency over availability (CP)**. If the database cannot be reached, requests fail and `/health/ready` returns `503` (checked on a separate 2-connection pool so a saturated request pool cannot flap readiness); the service never answers from a cache or accepts a booking it cannot record.
 
-## AI usage (honest)
-I used an AI coding agent heavily. What it did: reviewed the existing scaffold and found the bugs (camelCase JSON binding causing 500s, cancel not freeing seats, per-user limit counting reservations and racy, no token issuance, fake readiness, globally scoped idempotency key), then wrote most of the code, tests and burst tool. What I directed/decided: the bar to hit (from the brief), H2 locally with Postgres for the deployment, reserve returning `confirmed` per the spec sample, both an immediate reserve and an optional timed hold/confirm/expire flow, admin gating via a secret, and a requirement-by-requirement plan implemented and tested feature by feature. I reviewed the SQL and locking order and I can explain them. The burst suite has run against the public Render deployment: every correctness check passed (no double-sell, limits, idempotency, ownership, metrics reconciliation, zero 5xx), with free-tier latency of about p50 4.4 s / p99 23 s — slow but correct.
+* **What is tested:** `ReadinessFailClosedTest` closes the readiness pool and asserts `/health/ready` is `503` while `/health/live` stays `200`.
+* **What is not tested:** a real network partition between the application and PostgreSQL while a burst is running.
+* **Known gap:** during a database outage, ordinary requests currently return a generic `500 internal_error` rather than a clean `503` with `Retry-After`. Nothing is booked incorrectly, but the status code is not ideal (see Next).
+* **Durability.** PostgreSQL flushes each commit to its write-ahead log before the `201` is sent. On local H2 the same guarantee needed a fix: a `kill -9` test showed the default 500 ms write delay could lose the most recent confirmed bookings, so the default URL sets `WRITE_DELAY=0` (about 20 % lower throughput on a laptop). Data, idempotency keys, and expired-hold cleanup were verified to recover after a hard crash.
+* **Scaling.** The no-double-sell guarantee does not depend on the number of application instances. We still run one, because the Prometheus counters are per process and would split across instances.
+
+## Observability and what pages me at 2am
+
+* **Metrics** (`/actuator/prometheus`): `reservations_confirmed_total`, `reservations_held_total`, `reservations_cancelled_total`, `reservations_expired_total`, `reservations_declined_total{reason}` (`seat_taken`, `per_user_limit`, `idempotent_replay`, `idempotency_conflict`, `hold_expired`, `invalid_seat`, `contention`), `reservation_duration_seconds`, gauges `seats_available|held|confirmed{show_id}`, plus HTTP and Hikari pool metrics. They reconcile with the API and with what clients observe: in the live burst every counter equalled the client-side count exactly (see the live report).
+* **Logs:** one JSON line per request and one per state change, all carrying a `request_id` that is echoed in the `X-Request-ID` response header. Render has no public log URL, so `GET /ops/logs` serves the last 2000 events. It is safe to expose: an allow-list of fields, only the access log and this application's loggers as sources, pattern scrubbing of JWT, bearer and connection-URL strings, and a test that a planted JWT, the admin secret and the Authorization header never come out.
+
+I would be paged for:
+
+1. **Any 5xx** (`http_server_requests_seconds_count{status=~"5.."}` increasing). Declines are 4xx by design, so a 5xx is a bug or an outage.
+2. **Readiness failing or the service restarting** (`/health/ready` not 200, container restarts).
+3. **Contention or pool saturation:** `reservations_declined_total{reason="contention"}` rising, `hikaricp_connections_pending` above zero for a sustained period, `hikaricp_connections_timeout_total` increasing.
+4. **Latency:** p99 of `reservation_duration_seconds` far above its baseline during a sale.
+5. **Invariant drift:** `seats_available + seats_held + seats_confirmed` differing from a show's total. This should never move, so it pages immediately.
+6. **Business sanity:** zero confirmations during a sale window, or `confirmed_total - cancelled_total` diverging from the sum of confirmed seats.
+
+## AI usage
+
+I used an AI coding agent (Devin) heavily, working interactively in my terminal. This section separates what I directed from what the agent decided, and what the evidence actually covers.
+
+**What I directed** (my instructions and choices):
+* Reviewing the existing scaffold against the challenge text, and listing every requirement before any implementation, then planning and testing features one at a time.
+* Supporting both immediate reservation and timed holds with confirmation, with immediate reserve returning `confirmed`.
+* Admin-only show creation using a secret, and token-issuing endpoints for users and admins.
+* A configurable `run.sh`, incremental local commits, and publishing the repository.
+* Asking for an easy way to test the API by hand (the agent proposed static Swagger UI over a custom UI; I accepted).
+* Testing cold restarts and hard crashes, running the burst against the live service, switching the deployment to Render's PostgreSQL, a public log endpoint, per-scenario timing in the burst output, and an explicit instruction to check the live burst before making further changes.
+* Deployment choices: Render, free tier, and rotating the secrets after the live tests.
+
+**What the agent decided and did:**
+* Found the defects in the scaffold: camelCase JSON binding that turned valid snake_case requests into 500s, cancel not freeing seats, a per-user limit that counted reservations and was racy, no usable token issuance, readiness that always returned 200, and a globally scoped idempotency key.
+* Chose the design: a rewrite from JPA to plain JDBC, the conditional-`UPDATE` claim, the per-user allocation lock, the lock ordering, and `READ_COMMITTED` instead of `SERIALIZABLE`. Wrote most of the code, the 50 tests, the burst suite, the OpenAPI spec, and the documentation.
+
+**Where the agent was wrong or sloppy, and how it showed up:**
+* Produced misleading results in its own testing: it left old server processes running against a rebuilt jar and deleted a data directory under a live process, which caused spurious 500s and a damaged local database; it then documented the rule in `AGENTS.md`.
+* A first `kill -9` test lost data, which exposed the H2 write-delay problem (fixed with `WRITE_DELAY=0`).
+* Two bursts started at once overloaded the free instance and produced 502s; those results were discarded and the harness is run as a single process.
+* A registration file for the database-URL converter was silently ignored inside the packaged jar; it was found by running the packaged jar with a bad URL and replaced with an initializer registered in `main()`.
+* One burst expectation was wrong: Render's edge returns its own `403` for SQL-injection-looking strings before the app sees them.
+* An idempotency gap (the same key reused on a different show returned the first show's reservation) survived the first design and was found while the burst suite was being hardened; it is now fixed with a regression test.
+
+**What is verified by running, and what is not:**
+* Verified: 50 automated tests, two full local burst runs (default and short hold TTL), a hard-crash restart test, and the burst suite against the live Render deployment, which passed twice with zero 5xx (see the live report).
+* Not verified: the full-size burst (about 22,000 requests) against the free instance, a confirm winning the expiry race on the live service, a real database partition under load, and building the Docker image locally (Docker was not available; Render builds the image on every deploy).
 
 ## Next
-Multiple instances once metrics move to a shared store (e.g. Prometheus scraping is fine, but live counters would need aggregation); real identity provider instead of the demo issuer; rate limiting; OpenTelemetry tracing and Grafana dashboard; per-show gauge cardinality cap; a `lock_timeout` on the Postgres connections so a stuck lock can never hold a pooled connection indefinitely.
+
+1. **Clean `503` during a database outage**: map connection failures to `503` with `Retry-After`, and run a partition test (drop the database mid-burst).
+2. **Postgres operations:** set `lock_timeout` and `statement_timeout` on connections so one stuck lock cannot hold a pooled connection; use a paid, highly available database (the free one expires after 30 days).
+3. **Scale out safely:** move counters to a shared store or scrape per instance and aggregate, then run several application instances against one database.
+4. **Real identity:** replace the demo token issuer with an identity provider and short-lived tokens.
+5. **Abuse protection:** rate limiting per user and per IP, and a cap on the number of per-show gauges.
+6. **Observability:** distributed tracing, a Grafana dashboard, and alert rules for the six paging conditions above.
+7. **Capacity:** run the full-size burst against a larger instance to measure real headroom; the free tier handles about 33 requests/s.
