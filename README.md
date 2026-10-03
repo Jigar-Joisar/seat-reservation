@@ -127,6 +127,10 @@ The test suites (`src/test/java/com/seatreservation`):
 * `LogsEndpointTest`: the log endpoint finds a request by its `X-Request-ID`, never returns tokens, secrets, headers, stack traces or unknown fields, and scrubs a JWT planted in a URL
 * `OpenApiContractTest`: spec documents exactly the real endpoints, security/401/403 declarations match, error codes are real
 
+### Database-outage probe
+
+`./outage_probe.py <BASE_URL> --admin-secret S --duration 300 [--insecure] [--report out.json]` records, once per second, `/health/live`, `/health/ready` and one reservation attempt on a fresh seat while you stop and restart the database. Expected: live stays `200`, ready flips to `503`, reservations return `503 service_unavailable` with `Retry-After` (never a `201` that was not committed, never a partial booking), and the service recovers by itself when the database returns. It finishes with an audit (every seat that returned `201` is confirmed, the show invariant holds).
+
 ### Burst tool (load + adversarial correctness suite)
 
 ```bash

@@ -110,6 +110,7 @@ Every error is `{"error":"<code>","message":"...","details":{...}}` (`details` i
 | 409 | `idempotency_conflict` | key reused with different seats |
 | 409 | `hold_expired` | confirming an expired or cancelled hold |
 | 409 | `contention` | transient lock contention; retry with the same key |
+| 503 | `service_unavailable` | the database is unreachable; nothing was booked; header `Retry-After: 5`; retry with the same idempotency key |
 | 5xx | `internal_error` | a bug or an outage; should never occur for business outcomes |
 
 ## 5. End-to-end example
