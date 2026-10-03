@@ -76,6 +76,10 @@ Prometheus counters read from `/actuator/prometheus` (taken right after the run,
 
 The `seats_*` gauges for every show satisfy `available + held + confirmed == total` (the burst asserts this on every poll and in a final audit; the fleet-wide sums are in the `.prom` file).
 
+## Log access
+
+The platform offers no public log URL, so the service exposes `GET /ops/logs` (see the README, *Public log access*). Checked on the live deployment after the burst: a reservation's `X-Request-ID` response header returned both its access line and its `reservation confirmed` event ([sample](evidence/logs-live-sample.json)), and the full 1000-entry dump contained none of: the admin secret, any issued token, `Authorization`, `Bearer`, a stack trace, `jdbc:`, `postgres` or `password`.
+
 ## What the scenarios prove
 
 * **No double-sell**: exactly one `201` for a seat contended by 500 users, and a full audit (every reservation fetched and cross-checked against the seat map) found no seat in two live reservations.

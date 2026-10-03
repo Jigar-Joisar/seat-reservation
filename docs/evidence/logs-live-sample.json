@@ -1,0 +1,31 @@
+{
+    "count": 2,
+    "buffer_capacity": 2000,
+    "entries": [
+        {
+            "timestamp": "2026-10-03T12:54:32.320719382Z",
+            "level": "INFO",
+            "logger": "com.seatreservation.service.ReservationService",
+            "message": "reservation confirmed",
+            "request_id": "fccdab3f-09ec-4558-b5d9-1f50fd17188e",
+            "user_id": "logcheck",
+            "reservation_id": "5ccbe853-c926-4977-8066-11112e60863f",
+            "show_id": "292dc925-d886-4a26-894e-2bed4f04d6ca",
+            "seats": [
+                "A1"
+            ]
+        },
+        {
+            "timestamp": "2026-10-03T12:54:32.411652364Z",
+            "level": "INFO",
+            "logger": "access",
+            "message": "request",
+            "request_id": "fccdab3f-09ec-4558-b5d9-1f50fd17188e",
+            "method": "POST",
+            "path": "/shows/292dc925-d886-4a26-894e-2bed4f04d6ca/reserve",
+            "status": 201,
+            "duration_ms": 111,
+            "user_id": "logcheck"
+        }
+    ]
+}
