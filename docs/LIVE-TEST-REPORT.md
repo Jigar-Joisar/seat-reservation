@@ -226,21 +226,23 @@ The scheduler fix verified live: with a separate thread the monitor detected the
 
 ## Seat hints: live A/B on Render Postgres (scale 0.5)
 
-Two runs of the same suite on the same build (`0795d6e`), switching only `SEAT_HINTS_MODE` (`off` then `local`). Artifacts: [off](evidence/burst-hints-off-2026-10-04.txt) ([json](evidence/burst-hints-off-2026-10-04.json), [metrics](evidence/metrics-hints-off.prom)) · [local, failed](evidence/burst-hints-local-run1-FAILED-2026-10-04.txt) ([json](evidence/burst-hints-local-run1-FAILED-2026-10-04.json), [metrics](evidence/metrics-hints-local-run1-FAILED.prom)).
+Same suite, same instance, only `SEAT_HINTS_MODE` changed. Run A is the baseline with hints off (build `0795d6e`). Run B1 had hints on, on that same build, and failed a correctness check (see below). Run B2 had hints on with the bug fixed (build `0b7ad62`). Artifacts: [A](evidence/burst-hints-off-2026-10-04.txt) ([json](evidence/burst-hints-off-2026-10-04.json), [metrics](evidence/metrics-hints-off.prom)) · [B1, failed](evidence/burst-hints-local-run1-FAILED-2026-10-04.txt) ([json](evidence/burst-hints-local-run1-FAILED-2026-10-04.json), [metrics](evidence/metrics-hints-local-run1-FAILED.prom)) · [B2](evidence/burst-hints-local-run2-2026-10-04.txt) ([json](evidence/burst-hints-local-run2-2026-10-04.json), [metrics](evidence/metrics-hints-local-run2.prom)).
 
-| | hints off | hints local (run 1, **FAILED**) |
-|---|---|---|
-| Calls | 19,836 | 19,807 |
-| Total time | 703.6 s | 592.8 s |
-| Stampede (11,000 calls) | 331 s, 33 req/s | 262 s, 42 req/s |
-| Overall p50 / p95 / p99 | 4.0 / 14.5 / 21.6 s | 2.3 / 14.0 / 21.1 s |
-| Result | all checks passed | **1 check failed** (scenario 3) |
-| 5xx / transport failures / Hikari timeouts | 0 / 0 / 0 | 0 / 0 / 0 |
-| Hint counters | none | 15,599 hits, 5,763 misses, 2,805 learned, 722 dropped as stale, 445 releases |
+| | A: hints off | B1: hints on (**FAILED**) | B2: hints on, fixed |
+|---|---|---|---|
+| Calls | 19,836 | 19,807 | 19,836 |
+| Total time | 703.6 s | 592.8 s | **568.4 s** |
+| Stampede (11,000 calls) | 331 s, 33 req/s | 262 s, 42 req/s | **249 s, 44 req/s** |
+| Overall p50 / p95 / p99 | 4.0 / 14.5 / 21.6 s | 2.3 / 14.0 / 21.1 s | **2.6 / 12.4 / 17.6 s** |
+| Checks | all passed | 1 failed (scenario 3) | **all passed** |
+| 5xx / transport failures / Hikari timeouts | 0 / 0 / 0 | 0 / 0 / 0 | 0 / 0 / 0 |
+| Hint counters | none | 15,599 hits, 5,763 misses | 15,913 hits, 5,824 misses, 733 dropped as stale |
 
-The cache made this run about 16 % faster (median latency down from 4.0 s to 2.3 s), but **the run failed a correctness check and is not accepted**: in scenario 3, 3 of the 450 parallel duplicate requests got `409 seat_taken` instead of a replay (297 replays instead of 300). No seat was double-booked and the counters reconciled, but a retried request was declined, which breaks the idempotency promise. Cause: the hint was read after the idempotency lookup, so a duplicate could be rejected by the hint its own winner had just stored. Fixed by reading the hint first; a parallel regression test reproduces the bug on the old code. The speed figures above were measured on the buggy build, so they must be re-measured on the fixed one before any claim is made. Other differences are expected from the documented precedence change: `per_user_limit` declines fell from 719 to 408 because requests doomed for two reasons now answer `seat_taken`.
+**Result:** with the fix, hints on finished the suite 19 % faster than hints off (568 s against 704 s), the median latency fell by 35 % (4.0 s to 2.6 s), p99 by 19 % and the stampede throughput rose by a third (33 to 44 requests/s). Earlier unmodified runs of the same size took 650 s and 665 s, so the 5-8 % run-to-run spread is smaller than the gain. Every correctness check passed, including all 300 duplicate replays in scenario 3 and the metrics reconciliation. About 73 % of hint lookups were hits.
 
-The unmodified baseline runs for this build size were 650-704 s, so run-to-run variation is roughly 5-8 %; a result must clear that to count.
+**Caveats:** one run per condition, so the size of the gain is an estimate, not a precise figure; the free instance is shared hardware. `per_user_limit` declines fell from 719 (A) to 402 (B2) because requests doomed for two reasons now answer `seat_taken`; this is the documented precedence change, and the counters reconcile. The cache is exact only while one process releases seats (see the write-up).
+
+**B1, the failed run:** in scenario 3, 3 of the 450 parallel duplicate requests got `409 seat_taken` instead of a replay (297 replays instead of 300). No seat was double-booked and the counters reconciled, but a retried request was declined, which breaks the idempotency promise. The hint was being read after the idempotency lookup, so a duplicate could be rejected by the hint its own winner had just stored. Reading the hint first fixes it, and a parallel regression test reproduces the bug on the old code. B1 is kept as evidence and is not counted as a pass.
 
 ## Log access
 
