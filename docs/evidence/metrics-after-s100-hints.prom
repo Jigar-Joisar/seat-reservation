@@ -1,0 +1,1181 @@
+# HELP jvm_buffer_memory_used_bytes An estimate of the memory that the Java virtual machine is using for this buffer pool
+# TYPE jvm_buffer_memory_used_bytes gauge
+jvm_buffer_memory_used_bytes{id="mapped - 'non-volatile memory'",} 0.0
+jvm_buffer_memory_used_bytes{id="mapped",} 0.0
+jvm_buffer_memory_used_bytes{id="direct",} 117933.0
+# HELP tomcat_sessions_active_max_sessions  
+# TYPE tomcat_sessions_active_max_sessions gauge
+tomcat_sessions_active_max_sessions 0.0
+# HELP tomcat_sessions_alive_max_seconds  
+# TYPE tomcat_sessions_alive_max_seconds gauge
+tomcat_sessions_alive_max_seconds 0.0
+# HELP hikaricp_connections_acquire_seconds Connection acquire time
+# TYPE hikaricp_connections_acquire_seconds summary
+hikaricp_connections_acquire_seconds_count{pool="HikariPool-1",} 58791.0
+hikaricp_connections_acquire_seconds_sum{pool="HikariPool-1",} 14071.47893827
+# HELP hikaricp_connections_acquire_seconds_max Connection acquire time
+# TYPE hikaricp_connections_acquire_seconds_max gauge
+hikaricp_connections_acquire_seconds_max{pool="HikariPool-1",} 0.998220227
+# HELP jvm_classes_loaded_classes The number of classes that are currently loaded in the Java virtual machine
+# TYPE jvm_classes_loaded_classes gauge
+jvm_classes_loaded_classes 11224.0
+# HELP reservation_duration_seconds  
+# TYPE reservation_duration_seconds histogram
+reservation_duration_seconds_bucket{le="0.001",} 3191.0
+reservation_duration_seconds_bucket{le="0.001048576",} 3455.0
+reservation_duration_seconds_bucket{le="0.001398101",} 4888.0
+reservation_duration_seconds_bucket{le="0.001747626",} 5910.0
+reservation_duration_seconds_bucket{le="0.002097151",} 6688.0
+reservation_duration_seconds_bucket{le="0.002446676",} 7303.0
+reservation_duration_seconds_bucket{le="0.002796201",} 7799.0
+reservation_duration_seconds_bucket{le="0.003145726",} 8169.0
+reservation_duration_seconds_bucket{le="0.003495251",} 8448.0
+reservation_duration_seconds_bucket{le="0.003844776",} 8625.0
+reservation_duration_seconds_bucket{le="0.004194304",} 8761.0
+reservation_duration_seconds_bucket{le="0.005592405",} 9072.0
+reservation_duration_seconds_bucket{le="0.006990506",} 9235.0
+reservation_duration_seconds_bucket{le="0.008388607",} 9327.0
+reservation_duration_seconds_bucket{le="0.009786708",} 9381.0
+reservation_duration_seconds_bucket{le="0.011184809",} 9430.0
+reservation_duration_seconds_bucket{le="0.01258291",} 9451.0
+reservation_duration_seconds_bucket{le="0.013981011",} 9471.0
+reservation_duration_seconds_bucket{le="0.015379112",} 9477.0
+reservation_duration_seconds_bucket{le="0.016777216",} 9485.0
+reservation_duration_seconds_bucket{le="0.022369621",} 9519.0
+reservation_duration_seconds_bucket{le="0.027962026",} 9527.0
+reservation_duration_seconds_bucket{le="0.033554431",} 9539.0
+reservation_duration_seconds_bucket{le="0.039146836",} 9549.0
+reservation_duration_seconds_bucket{le="0.044739241",} 9551.0
+reservation_duration_seconds_bucket{le="0.050331646",} 9554.0
+reservation_duration_seconds_bucket{le="0.055924051",} 9558.0
+reservation_duration_seconds_bucket{le="0.061516456",} 9564.0
+reservation_duration_seconds_bucket{le="0.067108864",} 9577.0
+reservation_duration_seconds_bucket{le="0.089478485",} 9799.0
+reservation_duration_seconds_bucket{le="0.111848106",} 17839.0
+reservation_duration_seconds_bucket{le="0.134217727",} 17875.0
+reservation_duration_seconds_bucket{le="0.156587348",} 17881.0
+reservation_duration_seconds_bucket{le="0.178956969",} 17906.0
+reservation_duration_seconds_bucket{le="0.20132659",} 21354.0
+reservation_duration_seconds_bucket{le="0.223696211",} 22244.0
+reservation_duration_seconds_bucket{le="0.246065832",} 22252.0
+reservation_duration_seconds_bucket{le="0.268435456",} 22257.0
+reservation_duration_seconds_bucket{le="0.357913941",} 25199.0
+reservation_duration_seconds_bucket{le="0.447392426",} 27111.0
+reservation_duration_seconds_bucket{le="0.536870911",} 28547.0
+reservation_duration_seconds_bucket{le="0.626349396",} 29636.0
+reservation_duration_seconds_bucket{le="0.715827881",} 30619.0
+reservation_duration_seconds_bucket{le="0.805306366",} 31343.0
+reservation_duration_seconds_bucket{le="0.894784851",} 31456.0
+reservation_duration_seconds_bucket{le="0.984263336",} 32077.0
+reservation_duration_seconds_bucket{le="1.073741824",} 32609.0
+reservation_duration_seconds_bucket{le="1.431655765",} 34235.0
+reservation_duration_seconds_bucket{le="1.789569706",} 34992.0
+reservation_duration_seconds_bucket{le="2.147483647",} 35760.0
+reservation_duration_seconds_bucket{le="2.505397588",} 36213.0
+reservation_duration_seconds_bucket{le="2.863311529",} 36446.0
+reservation_duration_seconds_bucket{le="3.22122547",} 36684.0
+reservation_duration_seconds_bucket{le="3.579139411",} 36878.0
+reservation_duration_seconds_bucket{le="3.937053352",} 37058.0
+reservation_duration_seconds_bucket{le="4.294967296",} 37185.0
+reservation_duration_seconds_bucket{le="5.726623061",} 37538.0
+reservation_duration_seconds_bucket{le="7.158278826",} 37750.0
+reservation_duration_seconds_bucket{le="8.589934591",} 37860.0
+reservation_duration_seconds_bucket{le="10.021590356",} 37949.0
+reservation_duration_seconds_bucket{le="11.453246121",} 38000.0
+reservation_duration_seconds_bucket{le="12.884901886",} 38027.0
+reservation_duration_seconds_bucket{le="14.316557651",} 38048.0
+reservation_duration_seconds_bucket{le="15.748213416",} 38061.0
+reservation_duration_seconds_bucket{le="17.179869184",} 38066.0
+reservation_duration_seconds_bucket{le="22.906492245",} 38074.0
+reservation_duration_seconds_bucket{le="28.633115306",} 38074.0
+reservation_duration_seconds_bucket{le="30.0",} 38074.0
+reservation_duration_seconds_bucket{le="+Inf",} 38074.0
+reservation_duration_seconds_count 38074.0
+reservation_duration_seconds_sum 22512.778339244
+# HELP reservation_duration_seconds_max  
+# TYPE reservation_duration_seconds_max gauge
+reservation_duration_seconds_max 1.605932209
+# HELP seats_available_total  
+# TYPE seats_available_total gauge
+seats_available_total 7986.0
+# HELP hikaricp_connections_pending Pending threads
+# TYPE hikaricp_connections_pending gauge
+hikaricp_connections_pending{pool="HikariPool-1",} 0.0
+# HELP application_started_time_seconds Time taken to start the application
+# TYPE application_started_time_seconds gauge
+application_started_time_seconds{main_application_class="com.seatreservation.SeatReservationApplication",} 36.596
+# HELP tomcat_sessions_expired_sessions_total  
+# TYPE tomcat_sessions_expired_sessions_total counter
+tomcat_sessions_expired_sessions_total 0.0
+# HELP reservations_cancelled_total Reservations cancelled
+# TYPE reservations_cancelled_total counter
+reservations_cancelled_total 222.0
+# HELP hikaricp_connections_usage_seconds Connection usage time
+# TYPE hikaricp_connections_usage_seconds summary
+hikaricp_connections_usage_seconds_count{pool="HikariPool-1",} 58792.0
+hikaricp_connections_usage_seconds_sum{pool="HikariPool-1",} 8743.68
+# HELP hikaricp_connections_usage_seconds_max Connection usage time
+# TYPE hikaricp_connections_usage_seconds_max gauge
+hikaricp_connections_usage_seconds_max{pool="HikariPool-1",} 0.898
+# HELP hikaricp_connections_active Active connections
+# TYPE hikaricp_connections_active gauge
+hikaricp_connections_active{pool="HikariPool-1",} 0.0
+# HELP jvm_gc_live_data_size_bytes Size of long-lived heap memory pool after reclamation
+# TYPE jvm_gc_live_data_size_bytes gauge
+jvm_gc_live_data_size_bytes 5.9497696E7
+# HELP tomcat_sessions_created_sessions_total  
+# TYPE tomcat_sessions_created_sessions_total counter
+tomcat_sessions_created_sessions_total 0.0
+# HELP jvm_gc_overhead_percent An approximation of the percent of CPU time used by GC activities over the last lookback period or since monitoring began, whichever is shorter, in the range [0..1]
+# TYPE jvm_gc_overhead_percent gauge
+jvm_gc_overhead_percent 0.006076666666666667
+# HELP reservations_held_total Holds created
+# TYPE reservations_held_total counter
+reservations_held_total 77.0
+# HELP process_files_max_files The maximum file descriptor count
+# TYPE process_files_max_files gauge
+process_files_max_files 1048576.0
+# HELP jvm_threads_states_threads The current number of threads
+# TYPE jvm_threads_states_threads gauge
+jvm_threads_states_threads{state="runnable",} 7.0
+jvm_threads_states_threads{state="blocked",} 0.0
+jvm_threads_states_threads{state="waiting",} 5.0
+jvm_threads_states_threads{state="timed-waiting",} 21.0
+jvm_threads_states_threads{state="new",} 0.0
+jvm_threads_states_threads{state="terminated",} 0.0
+# HELP process_start_time_seconds Start time of the process since unix epoch.
+# TYPE process_start_time_seconds gauge
+process_start_time_seconds 1.791119986581E9
+# HELP tasks_scheduled_execution_seconds  
+# TYPE tasks_scheduled_execution_seconds summary
+tasks_scheduled_execution_seconds_count{code_function="sweep",code_namespace="com.seatreservation.service.HoldExpirySweeper",error="none",exception="none",outcome="SUCCESS",} 316.0
+tasks_scheduled_execution_seconds_sum{code_function="sweep",code_namespace="com.seatreservation.service.HoldExpirySweeper",error="none",exception="none",outcome="SUCCESS",} 60.415970432
+tasks_scheduled_execution_seconds_count{code_function="probe",code_namespace="com.seatreservation.service.DbHealthMonitor",error="none",exception="none",outcome="SUCCESS",} 764.0
+tasks_scheduled_execution_seconds_sum{code_function="probe",code_namespace="com.seatreservation.service.DbHealthMonitor",error="none",exception="none",outcome="SUCCESS",} 72.912176004
+# HELP tasks_scheduled_execution_seconds_max  
+# TYPE tasks_scheduled_execution_seconds_max gauge
+tasks_scheduled_execution_seconds_max{code_function="sweep",code_namespace="com.seatreservation.service.HoldExpirySweeper",error="none",exception="none",outcome="SUCCESS",} 0.39892711
+tasks_scheduled_execution_seconds_max{code_function="probe",code_namespace="com.seatreservation.service.DbHealthMonitor",error="none",exception="none",outcome="SUCCESS",} 0.203656506
+# HELP jvm_memory_max_bytes The maximum amount of memory in bytes that can be used for memory management
+# TYPE jvm_memory_max_bytes gauge
+jvm_memory_max_bytes{area="heap",id="Tenured Gen",} 2.68435456E8
+jvm_memory_max_bytes{area="heap",id="Eden Space",} 1.0747904E8
+jvm_memory_max_bytes{area="nonheap",id="Metaspace",} -1.0
+jvm_memory_max_bytes{area="nonheap",id="CodeCache",} 5.0331648E7
+jvm_memory_max_bytes{area="heap",id="Survivor Space",} 1.3369344E7
+jvm_memory_max_bytes{area="nonheap",id="Compressed Class Space",} 1.073741824E9
+# HELP jvm_compilation_time_ms_total The approximate accumulated elapsed time spent in compilation
+# TYPE jvm_compilation_time_ms_total counter
+jvm_compilation_time_ms_total{compiler="HotSpot 64-Bit Tiered Compilers",} 92356.0
+# HELP jvm_memory_used_bytes The amount of used memory
+# TYPE jvm_memory_used_bytes gauge
+jvm_memory_used_bytes{area="heap",id="Tenured Gen",} 9.11514E7
+jvm_memory_used_bytes{area="heap",id="Eden Space",} 2.382428E7
+jvm_memory_used_bytes{area="nonheap",id="Metaspace",} 4.6779152E7
+jvm_memory_used_bytes{area="nonheap",id="CodeCache",} 1.7858304E7
+jvm_memory_used_bytes{area="heap",id="Survivor Space",} 2215288.0
+jvm_memory_used_bytes{area="nonheap",id="Compressed Class Space",} 6815320.0
+# HELP process_cpu_usage The "recent cpu usage" for the Java Virtual Machine process
+# TYPE process_cpu_usage gauge
+process_cpu_usage 0.051440329218107
+# HELP jvm_buffer_total_capacity_bytes An estimate of the total capacity of the buffers in this pool
+# TYPE jvm_buffer_total_capacity_bytes gauge
+jvm_buffer_total_capacity_bytes{id="mapped - 'non-volatile memory'",} 0.0
+jvm_buffer_total_capacity_bytes{id="mapped",} 0.0
+jvm_buffer_total_capacity_bytes{id="direct",} 117933.0
+# HELP jdbc_connections_active Current number of active connections that have been allocated from the data source.
+# TYPE jdbc_connections_active gauge
+jdbc_connections_active{name="dataSource",} 0.0
+# HELP jvm_threads_started_threads_total The total number of application threads started in the JVM
+# TYPE jvm_threads_started_threads_total counter
+jvm_threads_started_threads_total 241.0
+# HELP system_cpu_usage The "recent cpu usage" of the system the application is running in
+# TYPE system_cpu_usage gauge
+system_cpu_usage 0.053394855967078186
+# HELP hikaricp_connections_creation_seconds_max Connection creation time
+# TYPE hikaricp_connections_creation_seconds_max gauge
+hikaricp_connections_creation_seconds_max{pool="HikariPool-1",} 0.0
+# HELP hikaricp_connections_creation_seconds Connection creation time
+# TYPE hikaricp_connections_creation_seconds summary
+hikaricp_connections_creation_seconds_count{pool="HikariPool-1",} 8.0
+hikaricp_connections_creation_seconds_sum{pool="HikariPool-1",} 15.99
+# HELP seats_confirmed  
+# TYPE seats_confirmed gauge
+seats_confirmed{show_id="2091f53e-0b4d-4ced-9bc6-0652ce2ae652",} 5.0
+seats_confirmed{show_id="44491c18-66ae-4e16-a025-94716d435810",} 0.0
+seats_confirmed{show_id="f47f09d6-9338-45fe-8e5f-3fbfbd1a8554",} 1.0
+seats_confirmed{show_id="edaee75a-8943-4e5b-8bbc-b8bf29702517",} 0.0
+seats_confirmed{show_id="e9375849-6955-4568-a02e-039f30ef654b",} 500.0
+seats_confirmed{show_id="729d8a1e-33d7-4abd-93ad-5bcd2985d444",} 300.0
+seats_confirmed{show_id="34ff7624-7228-4972-8acf-7d3f7aa25326",} 0.0
+seats_confirmed{show_id="408e4860-886d-4666-80ed-5bc7611f331a",} 473.0
+seats_confirmed{show_id="032d616f-9755-4388-ad07-156e582a7b55",} 6.0
+seats_confirmed{show_id="a73bf19e-33e2-46f3-b860-29e00cce3693",} 30.0
+seats_confirmed{show_id="7ab37948-ee20-444d-803d-429e228815ae",} 30.0
+seats_confirmed{show_id="c54d5fa2-bc0e-4eb8-8d59-b157caf39763",} 0.0
+seats_confirmed{show_id="827eec55-ceae-4318-938f-be7f4973399f",} 200.0
+seats_confirmed{show_id="f36e1620-5aaa-4528-b60c-25b36bd65ffc",} 10.0
+seats_confirmed{show_id="e1ce4f2b-68f5-4dcc-87c4-139d8746307d",} 30.0
+seats_confirmed{show_id="cf899dfc-95af-44cd-a345-d0323f24ca1f",} 1.0
+seats_confirmed{show_id="dc97c5d0-4db0-4726-b9b8-9b5d7d6ba893",} 50.0
+seats_confirmed{show_id="1e910739-e9ae-4d8f-8e1b-41ab4de8dcf8",} 1.0
+seats_confirmed{show_id="d61b70e6-cb78-413d-93a1-b6629d99c2ce",} 450.0
+seats_confirmed{show_id="97d3c1d1-de9d-43c6-9897-57655d53b02f",} 0.0
+seats_confirmed{show_id="69995989-4be2-4594-82dc-3c9be37d8273",} 1.0
+seats_confirmed{show_id="5e8e4bad-ad1e-48f0-b4ba-1ca308356907",} 6.0
+seats_confirmed{show_id="6d7594fc-7675-41b6-95c5-bf39597c718d",} 46.0
+seats_confirmed{show_id="05955ebf-750a-4387-9ce8-53385bc8509b",} 56.0
+seats_confirmed{show_id="cc1b20c7-ba3a-437d-b7b0-f506ef88cc70",} 1.0
+seats_confirmed{show_id="6fa69210-6342-4e8c-b057-abbb6d5c5b47",} 600.0
+seats_confirmed{show_id="24742530-1f22-49cb-9dc0-1011d7ac4960",} 0.0
+seats_confirmed{show_id="8067c75d-5834-4141-8853-99c0d04d1f48",} 3.0
+seats_confirmed{show_id="edd10f8c-28b2-44f0-8be8-345c2fd974a1",} 500.0
+seats_confirmed{show_id="80643a00-ffb4-4366-876d-e6f23f444db5",} 1.0
+seats_confirmed{show_id="350bc06b-9cc8-4669-8168-7d7182ba8862",} 471.0
+seats_confirmed{show_id="b4aa3a0b-3699-4eb1-a38f-52bcf6166c05",} 0.0
+seats_confirmed{show_id="157e1373-5fce-4313-aba5-bd20904c7744",} 44.0
+seats_confirmed{show_id="b5562e3a-1f22-43f3-864f-1b08c65a531a",} 300.0
+seats_confirmed{show_id="7c816847-e094-4c46-83c7-06113c760e9d",} 600.0
+seats_confirmed{show_id="48694280-02f1-4ce8-a9c3-1014e631bf95",} 0.0
+seats_confirmed{show_id="4443a689-626e-4ade-96cb-54395277a8bf",} 1.0
+seats_confirmed{show_id="a7b1380e-c1cb-482d-9da6-f7984af51566",} 6.0
+seats_confirmed{show_id="c1ea69cb-31a1-490d-8c6d-55e34aa74a00",} 52.0
+seats_confirmed{show_id="dd69a6f3-4525-4f4d-a0f0-f3c8902efcf6",} 2.0
+seats_confirmed{show_id="54fa4ba8-c396-4a63-8490-b118ea66ba8e",} 3.0
+seats_confirmed{show_id="b3d24d45-a30c-4a85-befb-0f642644411f",} 12.0
+seats_confirmed{show_id="e16a3f7d-bd5f-4a24-acf2-1e4b3374ca55",} 500.0
+seats_confirmed{show_id="40fb8263-3c15-435d-a4c1-3487dca3e47c",} 1.0
+seats_confirmed{show_id="36fad7a1-e18c-4a9f-a789-201335a147ad",} 300.0
+seats_confirmed{show_id="e010c1f5-fef0-4f50-8a90-d9dda0ec4d18",} 30.0
+seats_confirmed{show_id="c7bbf894-f4e6-40d4-bf7a-bb4fb9fbf2ec",} 0.0
+seats_confirmed{show_id="5224b67b-c6d9-4e56-93cb-0e349ca3cc38",} 0.0
+seats_confirmed{show_id="60f1b09a-d941-4d17-b840-240361a8408e",} 200.0
+seats_confirmed{show_id="5fe1c104-0db2-47c8-b7c7-9eb95acacd52",} 3.0
+seats_confirmed{show_id="bc69ca71-e81c-4214-97fe-0630b0479679",} 6.0
+seats_confirmed{show_id="c19ab002-39f0-498a-b783-37da7db9a9e4",} 0.0
+seats_confirmed{show_id="f3a0489b-92a1-4506-848a-550418073060",} 131.0
+seats_confirmed{show_id="104408cc-9b9f-4dda-8e1b-a5f13102ef28",} 0.0
+seats_confirmed{show_id="6c658263-d00c-4f24-bfe0-6426799ba7a9",} 300.0
+seats_confirmed{show_id="b33db7db-5e16-410f-98d6-b9c24fd1b75c",} 300.0
+seats_confirmed{show_id="89a95443-d478-480c-bea6-b2574bef126d",} 300.0
+seats_confirmed{show_id="fa6462c3-fb02-43f5-b3d6-ea4a41704df1",} 300.0
+seats_confirmed{show_id="0a8486cf-2139-4294-826e-357fd59b0b7e",} 11.0
+seats_confirmed{show_id="059a8fcc-a260-49e7-9054-319cde73b914",} 1.0
+seats_confirmed{show_id="bb057e0f-563f-4fcb-81c2-bff2a0d3362c",} 1.0
+seats_confirmed{show_id="ccac80db-d7fd-4ce3-9f4d-7dbb652e3e94",} 1.0
+seats_confirmed{show_id="9d3377a3-6bdd-444a-8f6a-52e0ff8364aa",} 0.0
+seats_confirmed{show_id="3c16844d-ab51-426d-bb3d-585761fc9230",} 1.0
+seats_confirmed{show_id="0da1e63b-98ba-4cb9-87c5-ce8104f9c32d",} 0.0
+seats_confirmed{show_id="83695dc8-3f76-40f3-add4-a5ee12032410",} 1.0
+seats_confirmed{show_id="651563c1-161f-4e65-afae-4d2f228c26cd",} 200.0
+seats_confirmed{show_id="72769de5-21fb-4570-83c0-055255f24df9",} 1.0
+seats_confirmed{show_id="08d9667b-97d5-4d5d-8ecd-c1df5938ae74",} 0.0
+seats_confirmed{show_id="3354d48c-d628-490f-8a45-f43334e3dab2",} 1.0
+seats_confirmed{show_id="6662c968-6e53-4480-8bbc-4972325b15e6",} 0.0
+seats_confirmed{show_id="c6b7c6b9-761a-4156-96c7-b80b3aee8168",} 11.0
+seats_confirmed{show_id="a9aaa82e-de3e-45c1-9526-704e4796aad4",} 1.0
+seats_confirmed{show_id="2dba0db4-6392-422e-a4f1-3a29bc32b120",} 88.0
+seats_confirmed{show_id="1e987cb2-b637-4a2c-9cac-ac1a84e175b9",} 3.0
+seats_confirmed{show_id="3154c0b8-fa01-4053-a72d-021cb25e9b93",} 0.0
+seats_confirmed{show_id="20151820-e188-45b4-b15c-986ad554e2c8",} 470.0
+seats_confirmed{show_id="08da58b5-a90a-4e80-bc75-5937cd169430",} 0.0
+seats_confirmed{show_id="f63c9754-bbc4-4857-a161-e4a5ff557ac6",} 1.0
+seats_confirmed{show_id="51f5961a-e40c-424f-bd15-e60ee389cd22",} 0.0
+seats_confirmed{show_id="02b827d7-5da6-413c-8996-ae8d673e38af",} 200.0
+seats_confirmed{show_id="61d7b445-2462-44e2-b087-8504eda2bd96",} 0.0
+seats_confirmed{show_id="f479f397-713a-4852-9fa0-7dcaa7b1d0ea",} 3.0
+seats_confirmed{show_id="90ffb6c9-ad78-42de-9b10-c99af2ea0766",} 0.0
+seats_confirmed{show_id="b09ab6b0-e140-4873-b8e6-1d47ea8c6397",} 1.0
+seats_confirmed{show_id="3b1d968e-050e-4ecf-a060-0dde0109c558",} 0.0
+seats_confirmed{show_id="41f0ecea-e06e-40f0-aa0e-6089296c1aaf",} 0.0
+seats_confirmed{show_id="6561b639-eb26-4ef6-93f5-757f3c442e35",} 200.0
+seats_confirmed{show_id="4f2d4a4d-1995-4893-88af-a1aeee52e968",} 1.0
+seats_confirmed{show_id="705e14cd-c28b-4559-acc2-735986584c24",} 500.0
+seats_confirmed{show_id="31a6a5f4-c1f9-4a35-b6c3-0197d56e54fc",} 50.0
+seats_confirmed{show_id="a8a6039b-7503-48d9-b5ba-0432ea63efaa",} 0.0
+seats_confirmed{show_id="07050f0d-efd0-44b4-9188-14ca35e442d4",} 10.0
+seats_confirmed{show_id="22b552fb-45a5-4e20-b0c0-ab89abdf4ea3",} 0.0
+seats_confirmed{show_id="21a405a8-8112-49a0-9302-77bea7976e8e",} 30.0
+seats_confirmed{show_id="19c55ef0-c4ad-4915-b3a5-e4259e4f7b90",} 1.0
+seats_confirmed{show_id="5ea23342-912c-4e30-a27c-706bfb95e952",} 6.0
+seats_confirmed{show_id="ad57d5d6-363d-4bfd-b6ad-488b11519be0",} 0.0
+seats_confirmed{show_id="8bc47f04-d00d-4438-9aaf-03fe79e7ecdf",} 30.0
+seats_confirmed{show_id="bf84671a-8d46-4670-9c7e-98c40bfb45d2",} 49.0
+seats_confirmed{show_id="d6c2c9be-0977-46bd-b9cc-26c18c7aeb3c",} 0.0
+seats_confirmed{show_id="e2f8cb7e-9f0c-46c6-8251-7d5454892f43",} 300.0
+seats_confirmed{show_id="9cb2b706-274f-4f39-8cff-2495064fb77b",} 0.0
+seats_confirmed{show_id="f7a0437c-7e0c-4d49-9baf-d07027c6447a",} 1.0
+seats_confirmed{show_id="c37cf5c3-6190-49d0-ab97-206d7f36f19d",} 11.0
+seats_confirmed{show_id="2233fd67-c052-4358-a3c7-06912a5b19e0",} 49.0
+seats_confirmed{show_id="75a734ef-62f9-4cc1-b7de-be1b75f85d5f",} 120.0
+seats_confirmed{show_id="ed6802fa-260e-4b36-984e-4f8617953861",} 0.0
+seats_confirmed{show_id="5f698813-1b07-48ba-9c93-08c57dac4ce8",} 0.0
+seats_confirmed{show_id="2289283a-cc72-41bf-bcfa-40bcd7f9f76f",} 300.0
+seats_confirmed{show_id="cd31937b-51cb-4421-94ef-e0cd4d079827",} 3.0
+seats_confirmed{show_id="49a7566a-99fe-4257-b613-48a977c7eae1",} 6.0
+seats_confirmed{show_id="6ef99d12-1113-4170-81b5-95e0723594f7",} 115.0
+seats_confirmed{show_id="cc82b962-b1d3-46b5-84a7-bbe40624ab95",} 0.0
+seats_confirmed{show_id="df57af14-3aa5-4815-9adf-6c3f014b632c",} 500.0
+seats_confirmed{show_id="0ae578ef-1d47-4e2a-9c29-d3de3a6c42ac",} 1.0
+seats_confirmed{show_id="f20c07d7-157d-477f-8abf-1f78007d963e",} 0.0
+seats_confirmed{show_id="fd2ee2a0-ad6a-49ba-b7ee-5d61fa941742",} 500.0
+seats_confirmed{show_id="cb221ad5-4abb-4af5-ae7a-0d0b9d2b085b",} 0.0
+seats_confirmed{show_id="537b97c5-162d-4930-b8f7-f6a5912a7616",} 1.0
+seats_confirmed{show_id="cf3f6e9a-f786-4490-9638-965cdc189983",} 1.0
+seats_confirmed{show_id="2442d797-d87b-43ac-85f8-31764f82c6ac",} 6.0
+seats_confirmed{show_id="7336414e-8f9d-4cb0-9116-bd000566227c",} 120.0
+seats_confirmed{show_id="cd3d29d3-0c52-423e-a642-495e3fdf14d8",} 1.0
+seats_confirmed{show_id="615b35f0-838c-4dbc-b263-8423570a061f",} 1.0
+seats_confirmed{show_id="701cd1c5-8928-412c-b2fd-56e713ed55aa",} 48.0
+seats_confirmed{show_id="025ba372-644c-4ab9-90fa-3c4365e7c697",} 0.0
+seats_confirmed{show_id="dd81c7e4-b1e5-40f6-ae00-8a3167dee0ec",} 500.0
+seats_confirmed{show_id="bca74322-f50b-4051-88d7-5b6021647c60",} 300.0
+seats_confirmed{show_id="34f07463-6e6a-4ff9-a1e8-4185b3ef857e",} 11.0
+seats_confirmed{show_id="7f52fc5d-8c67-4a8f-bcb4-d47ef975dd08",} 0.0
+seats_confirmed{show_id="e84bf04e-61ab-461e-80eb-c17e6c8bc786",} 300.0
+seats_confirmed{show_id="094812e5-5e73-4b3f-bd36-96aa7373c087",} 1.0
+seats_confirmed{show_id="69c4aab1-10d2-4319-b9f0-739e2b8bb676",} 0.0
+seats_confirmed{show_id="5657c8fb-0558-4eb5-b311-82c607c11b38",} 1.0
+seats_confirmed{show_id="cec23a56-1b4e-4ba8-83b3-3f55e27cc2dd",} 54.0
+seats_confirmed{show_id="2fa1877d-6929-4bce-b5ba-95985891f29d",} 0.0
+seats_confirmed{show_id="7df055d8-70bc-420f-93d8-2a31bcdc49c4",} 3.0
+seats_confirmed{show_id="38b9f830-fb18-4ec2-9ae0-f49792527eaa",} 44.0
+seats_confirmed{show_id="292dc925-d886-4a26-894e-2bed4f04d6ca",} 1.0
+seats_confirmed{show_id="4afca84c-8400-40b9-b17f-2a2eecb51036",} 200.0
+seats_confirmed{show_id="08c1a3e0-4d79-4aec-912b-0e344653d56a",} 1.0
+seats_confirmed{show_id="c29f497d-7096-47a9-b785-1b77650fc185",} 1.0
+seats_confirmed{show_id="dd19ccf3-50cd-4dd5-ac15-7a4b20bbc0d3",} 30.0
+seats_confirmed{show_id="96d431f4-58bd-4678-acb8-7b6afac672e0",} 12.0
+seats_confirmed{show_id="763c0c31-0758-49c4-8a54-7885679ea809",} 300.0
+seats_confirmed{show_id="927ee90b-b521-4a1d-ae33-3ea11f6c20b3",} 200.0
+seats_confirmed{show_id="f6fdc8db-936b-49b8-b74c-3a4398eb3556",} 1.0
+seats_confirmed{show_id="d0e71cf3-d1ed-47c8-ab43-93739aa05242",} 300.0
+seats_confirmed{show_id="29e55da0-340b-49e5-bc11-626a3247c28b",} 1.0
+seats_confirmed{show_id="61e82407-9731-43df-ac0c-76b4653a09d3",} 600.0
+seats_confirmed{show_id="a7566ee5-0074-4fe2-88fd-dcc949535990",} 0.0
+seats_confirmed{show_id="0384d9fb-769b-44d9-b811-56fc406e2e89",} 1.0
+seats_confirmed{show_id="c10bf83b-7991-4218-b00b-3631394d0cd7",} 1.0
+seats_confirmed{show_id="ef957edd-573c-4153-b8c5-5d860d7b34b0",} 300.0
+seats_confirmed{show_id="96f7fe0c-4010-4ebe-8aea-16e3913a743f",} 30.0
+seats_confirmed{show_id="2c917a8b-e33d-4a00-8a8c-bfa2fba4919a",} 6.0
+seats_confirmed{show_id="8f453d98-5c24-48bf-a931-fa2d1742e4b3",} 0.0
+seats_confirmed{show_id="59fad1bb-bd07-4872-aeaf-3ba450b99e2d",} 500.0
+seats_confirmed{show_id="5b85c1aa-e12d-47d9-bc3d-8a388fe4266e",} 10.0
+seats_confirmed{show_id="8b01266c-93ef-429b-8cde-0bbaff2e30bd",} 0.0
+seats_confirmed{show_id="107d9fa7-32f5-42f4-8c02-6474c51d8716",} 3.0
+seats_confirmed{show_id="16622cd9-3ea5-4025-8a92-5ecbbbe2d64b",} 7.0
+seats_confirmed{show_id="f2353cc6-f145-41fb-ac34-24900a2e7f9e",} 500.0
+seats_confirmed{show_id="8b4183a2-08ec-4c33-86cf-49d92cb282dd",} 1.0
+seats_confirmed{show_id="7d9a7c31-5931-4e70-aecc-f66af198d3cf",} 48.0
+seats_confirmed{show_id="8af6a0e3-4a3c-4dc5-b955-e595773f9fdf",} 0.0
+seats_confirmed{show_id="f3a72206-f814-4eaf-bf1d-5d1eec5b27fb",} 0.0
+seats_confirmed{show_id="2853545c-6183-462e-9498-78607b84a7a8",} 0.0
+seats_confirmed{show_id="ef88693d-dc5f-440d-b9f4-686d3991cbbd",} 0.0
+seats_confirmed{show_id="3dd996d8-4cdd-46b6-9ffc-bf2e0de1466a",} 10.0
+seats_confirmed{show_id="3f284b91-da23-4731-badc-3a24234c91cd",} 1.0
+seats_confirmed{show_id="5f231766-ef6f-4f08-9ad9-5b796157a6ee",} 1.0
+seats_confirmed{show_id="dfcbfa34-9160-4510-8472-50c4761060e5",} 0.0
+seats_confirmed{show_id="84e09c78-5999-4f79-9bb6-3635db281702",} 1.0
+seats_confirmed{show_id="73c4e72c-582b-4652-a95e-3a287adc20a3",} 1.0
+seats_confirmed{show_id="4aab4b10-da87-48b5-a1b0-75b86bef5ab1",} 11.0
+seats_confirmed{show_id="100f77b8-b6a3-4955-8ac8-374616fb03fd",} 11.0
+seats_confirmed{show_id="ea5a2a40-81d0-4ff3-a7e2-9f0191b8b759",} 300.0
+seats_confirmed{show_id="85deec5f-99b7-4488-9f68-40a5a9dbe367",} 3.0
+seats_confirmed{show_id="2c650761-9262-4952-b143-0fce7ea31961",} 0.0
+seats_confirmed{show_id="e4b3cb73-a909-422b-b213-d81e90d7504b",} 1.0
+seats_confirmed{show_id="743e6362-e932-468c-9ced-e96e3e65c644",} 357.0
+seats_confirmed{show_id="aa6a0746-7dcf-4c6a-83c2-83e4983eab52",} 0.0
+seats_confirmed{show_id="db61c539-35e4-4075-8ea4-3970ddf013ea",} 30.0
+seats_confirmed{show_id="87214257-b976-477e-9554-ac62090c47f1",} 0.0
+seats_confirmed{show_id="12ac586e-8826-4710-97b7-c3b11703c229",} 1.0
+seats_confirmed{show_id="2b2d470d-4792-4eef-a428-41a67f9c2caa",} 0.0
+seats_confirmed{show_id="ac3b7064-9365-4dea-abdf-71f5244f21e4",} 1.0
+seats_confirmed{show_id="e9c95553-f377-4640-981e-c7745c5f8fb5",} 10.0
+seats_confirmed{show_id="b40cceb4-e904-4588-a748-2b45c498776c",} 7.0
+seats_confirmed{show_id="9d04e2ea-dc31-41e0-a13e-d7c251e8c913",} 200.0
+seats_confirmed{show_id="79ecc426-bdc8-40c4-8daa-b619c79727bf",} 0.0
+seats_confirmed{show_id="dc42ff81-2b61-4e47-bdf8-b6a10a8e0dbe",} 200.0
+seats_confirmed{show_id="fb88e0ed-b8ad-4261-a50c-d3e1d1cc306b",} 5.0
+seats_confirmed{show_id="103e2604-f8fa-47d0-b2bf-90c8cbbdcfdc",} 1.0
+seats_confirmed{show_id="1bee8f45-0ec1-4285-8ecb-14df0aa0cf58",} 30.0
+seats_confirmed{show_id="7eeec72b-7c46-4ce6-87b0-a6064ab46da5",} 200.0
+seats_confirmed{show_id="55868115-a601-428f-b1d2-d785a319c25f",} 0.0
+seats_confirmed{show_id="e70877d5-e9d8-4cf6-bcb9-9e73c5549fb3",} 0.0
+seats_confirmed{show_id="20e08ce9-787c-4df7-9eaf-066ee6b003c6",} 0.0
+seats_confirmed{show_id="84083772-c616-4a37-8c8e-a36be17af7b2",} 1.0
+seats_confirmed{show_id="4aee7e80-d441-4ded-8eeb-7e13298d5b88",} 300.0
+seats_confirmed{show_id="7420c763-0cbf-4737-a377-32ca0a5d85c7",} 46.0
+seats_confirmed{show_id="c8317f9e-a7e9-4396-8cfb-01ea0d61169e",} 3.0
+seats_confirmed{show_id="0fcaaf0f-faed-4242-b354-8c764f9b9510",} 0.0
+seats_confirmed{show_id="e6493c71-8628-4b43-80a3-8204b1567efa",} 1.0
+seats_confirmed{show_id="08a8eb3b-def8-4bb0-8360-ebc2d300be0f",} 200.0
+seats_confirmed{show_id="8fa73abd-e369-4e38-9de1-a80a564e8cdd",} 30.0
+seats_confirmed{show_id="0c0add4d-e900-4b98-828f-2908e1e8974d",} 120.0
+seats_confirmed{show_id="dfae82f9-f922-45e0-8c05-ac3a2e9b6247",} 300.0
+seats_confirmed{show_id="48c4bcc4-c6ea-4df6-93b0-67799a25fe2e",} 200.0
+seats_confirmed{show_id="cb581271-b5ba-49f7-a071-d2fabdd7a53c",} 1.0
+seats_confirmed{show_id="191dfa4b-4fe7-491c-81a3-d41b59321bd4",} 1.0
+seats_confirmed{show_id="6caf4357-9755-4e98-bd1b-89313d3ddfe5",} 300.0
+seats_confirmed{show_id="dd96c1c4-9973-4ddf-8f09-1074a62c3689",} 0.0
+seats_confirmed{show_id="f614cd6e-019f-4d30-844b-aedab7a4cde8",} 1.0
+seats_confirmed{show_id="80e7fded-1a90-4ee0-ae3e-cec8145892b1",} 2.0
+seats_confirmed{show_id="def9bc80-0871-4fca-80de-744c58babc88",} 3.0
+seats_confirmed{show_id="f35757c8-f820-4fe8-b240-09c0d3490601",} 200.0
+seats_confirmed{show_id="72cd8853-b71d-490e-a303-55df91cb4f0b",} 30.0
+seats_confirmed{show_id="83bc882d-127f-43e1-a630-c7b07bfb6de3",} 1.0
+seats_confirmed{show_id="0c17a13f-0957-4ad1-9fff-f1c4a1bcaff8",} 300.0
+seats_confirmed{show_id="0edf1884-a0bd-445c-ae13-79ca26fb9cbe",} 6.0
+seats_confirmed{show_id="098c5c60-1ee9-424a-bdbd-0bbf10ea1414",} 3.0
+seats_confirmed{show_id="29a0ce40-91f1-4413-a4a5-db7242314480",} 1.0
+seats_confirmed{show_id="b8316a29-19a7-493c-9459-3bc5b8e50700",} 30.0
+seats_confirmed{show_id="ed143ee7-7c6e-41fb-a8eb-1c87b44ab9c8",} 216.0
+seats_confirmed{show_id="880f784b-1ee3-41bb-8612-d66e75eb3f74",} 3.0
+seats_confirmed{show_id="2f1cb79e-7ed3-4133-bc8f-ded96d7f1e16",} 1.0
+seats_confirmed{show_id="87f3f0c2-2ab6-443e-92f0-7fff092e27c0",} 1.0
+seats_confirmed{show_id="f4224b06-4cf3-4c8b-89ed-362bfd0610e3",} 0.0
+# HELP hikaricp_connections_min Min connections
+# TYPE hikaricp_connections_min gauge
+hikaricp_connections_min{pool="HikariPool-1",} 8.0
+# HELP seats_held  
+# TYPE seats_held gauge
+seats_held{show_id="2091f53e-0b4d-4ced-9bc6-0652ce2ae652",} 0.0
+seats_held{show_id="44491c18-66ae-4e16-a025-94716d435810",} 0.0
+seats_held{show_id="f47f09d6-9338-45fe-8e5f-3fbfbd1a8554",} 0.0
+seats_held{show_id="edaee75a-8943-4e5b-8bbc-b8bf29702517",} 0.0
+seats_held{show_id="e9375849-6955-4568-a02e-039f30ef654b",} 0.0
+seats_held{show_id="729d8a1e-33d7-4abd-93ad-5bcd2985d444",} 0.0
+seats_held{show_id="34ff7624-7228-4972-8acf-7d3f7aa25326",} 0.0
+seats_held{show_id="408e4860-886d-4666-80ed-5bc7611f331a",} 0.0
+seats_held{show_id="032d616f-9755-4388-ad07-156e582a7b55",} 0.0
+seats_held{show_id="a73bf19e-33e2-46f3-b860-29e00cce3693",} 0.0
+seats_held{show_id="7ab37948-ee20-444d-803d-429e228815ae",} 0.0
+seats_held{show_id="c54d5fa2-bc0e-4eb8-8d59-b157caf39763",} 0.0
+seats_held{show_id="827eec55-ceae-4318-938f-be7f4973399f",} 0.0
+seats_held{show_id="f36e1620-5aaa-4528-b60c-25b36bd65ffc",} 0.0
+seats_held{show_id="e1ce4f2b-68f5-4dcc-87c4-139d8746307d",} 0.0
+seats_held{show_id="cf899dfc-95af-44cd-a345-d0323f24ca1f",} 0.0
+seats_held{show_id="dc97c5d0-4db0-4726-b9b8-9b5d7d6ba893",} 0.0
+seats_held{show_id="1e910739-e9ae-4d8f-8e1b-41ab4de8dcf8",} 0.0
+seats_held{show_id="d61b70e6-cb78-413d-93a1-b6629d99c2ce",} 0.0
+seats_held{show_id="97d3c1d1-de9d-43c6-9897-57655d53b02f",} 0.0
+seats_held{show_id="69995989-4be2-4594-82dc-3c9be37d8273",} 0.0
+seats_held{show_id="5e8e4bad-ad1e-48f0-b4ba-1ca308356907",} 0.0
+seats_held{show_id="6d7594fc-7675-41b6-95c5-bf39597c718d",} 0.0
+seats_held{show_id="05955ebf-750a-4387-9ce8-53385bc8509b",} 0.0
+seats_held{show_id="cc1b20c7-ba3a-437d-b7b0-f506ef88cc70",} 0.0
+seats_held{show_id="6fa69210-6342-4e8c-b057-abbb6d5c5b47",} 0.0
+seats_held{show_id="24742530-1f22-49cb-9dc0-1011d7ac4960",} 0.0
+seats_held{show_id="8067c75d-5834-4141-8853-99c0d04d1f48",} 0.0
+seats_held{show_id="edd10f8c-28b2-44f0-8be8-345c2fd974a1",} 0.0
+seats_held{show_id="80643a00-ffb4-4366-876d-e6f23f444db5",} 0.0
+seats_held{show_id="350bc06b-9cc8-4669-8168-7d7182ba8862",} 0.0
+seats_held{show_id="b4aa3a0b-3699-4eb1-a38f-52bcf6166c05",} 0.0
+seats_held{show_id="157e1373-5fce-4313-aba5-bd20904c7744",} 0.0
+seats_held{show_id="b5562e3a-1f22-43f3-864f-1b08c65a531a",} 0.0
+seats_held{show_id="7c816847-e094-4c46-83c7-06113c760e9d",} 0.0
+seats_held{show_id="48694280-02f1-4ce8-a9c3-1014e631bf95",} 0.0
+seats_held{show_id="4443a689-626e-4ade-96cb-54395277a8bf",} 0.0
+seats_held{show_id="a7b1380e-c1cb-482d-9da6-f7984af51566",} 0.0
+seats_held{show_id="c1ea69cb-31a1-490d-8c6d-55e34aa74a00",} 0.0
+seats_held{show_id="dd69a6f3-4525-4f4d-a0f0-f3c8902efcf6",} 0.0
+seats_held{show_id="54fa4ba8-c396-4a63-8490-b118ea66ba8e",} 0.0
+seats_held{show_id="b3d24d45-a30c-4a85-befb-0f642644411f",} 0.0
+seats_held{show_id="e16a3f7d-bd5f-4a24-acf2-1e4b3374ca55",} 0.0
+seats_held{show_id="40fb8263-3c15-435d-a4c1-3487dca3e47c",} 0.0
+seats_held{show_id="36fad7a1-e18c-4a9f-a789-201335a147ad",} 0.0
+seats_held{show_id="e010c1f5-fef0-4f50-8a90-d9dda0ec4d18",} 0.0
+seats_held{show_id="c7bbf894-f4e6-40d4-bf7a-bb4fb9fbf2ec",} 0.0
+seats_held{show_id="5224b67b-c6d9-4e56-93cb-0e349ca3cc38",} 0.0
+seats_held{show_id="60f1b09a-d941-4d17-b840-240361a8408e",} 0.0
+seats_held{show_id="5fe1c104-0db2-47c8-b7c7-9eb95acacd52",} 0.0
+seats_held{show_id="bc69ca71-e81c-4214-97fe-0630b0479679",} 0.0
+seats_held{show_id="c19ab002-39f0-498a-b783-37da7db9a9e4",} 0.0
+seats_held{show_id="f3a0489b-92a1-4506-848a-550418073060",} 0.0
+seats_held{show_id="104408cc-9b9f-4dda-8e1b-a5f13102ef28",} 0.0
+seats_held{show_id="6c658263-d00c-4f24-bfe0-6426799ba7a9",} 0.0
+seats_held{show_id="b33db7db-5e16-410f-98d6-b9c24fd1b75c",} 0.0
+seats_held{show_id="89a95443-d478-480c-bea6-b2574bef126d",} 0.0
+seats_held{show_id="fa6462c3-fb02-43f5-b3d6-ea4a41704df1",} 0.0
+seats_held{show_id="0a8486cf-2139-4294-826e-357fd59b0b7e",} 0.0
+seats_held{show_id="059a8fcc-a260-49e7-9054-319cde73b914",} 0.0
+seats_held{show_id="bb057e0f-563f-4fcb-81c2-bff2a0d3362c",} 0.0
+seats_held{show_id="ccac80db-d7fd-4ce3-9f4d-7dbb652e3e94",} 0.0
+seats_held{show_id="9d3377a3-6bdd-444a-8f6a-52e0ff8364aa",} 0.0
+seats_held{show_id="3c16844d-ab51-426d-bb3d-585761fc9230",} 0.0
+seats_held{show_id="0da1e63b-98ba-4cb9-87c5-ce8104f9c32d",} 0.0
+seats_held{show_id="83695dc8-3f76-40f3-add4-a5ee12032410",} 0.0
+seats_held{show_id="651563c1-161f-4e65-afae-4d2f228c26cd",} 0.0
+seats_held{show_id="72769de5-21fb-4570-83c0-055255f24df9",} 0.0
+seats_held{show_id="08d9667b-97d5-4d5d-8ecd-c1df5938ae74",} 0.0
+seats_held{show_id="3354d48c-d628-490f-8a45-f43334e3dab2",} 0.0
+seats_held{show_id="6662c968-6e53-4480-8bbc-4972325b15e6",} 0.0
+seats_held{show_id="c6b7c6b9-761a-4156-96c7-b80b3aee8168",} 0.0
+seats_held{show_id="a9aaa82e-de3e-45c1-9526-704e4796aad4",} 0.0
+seats_held{show_id="2dba0db4-6392-422e-a4f1-3a29bc32b120",} 0.0
+seats_held{show_id="1e987cb2-b637-4a2c-9cac-ac1a84e175b9",} 0.0
+seats_held{show_id="3154c0b8-fa01-4053-a72d-021cb25e9b93",} 0.0
+seats_held{show_id="20151820-e188-45b4-b15c-986ad554e2c8",} 0.0
+seats_held{show_id="08da58b5-a90a-4e80-bc75-5937cd169430",} 0.0
+seats_held{show_id="f63c9754-bbc4-4857-a161-e4a5ff557ac6",} 0.0
+seats_held{show_id="51f5961a-e40c-424f-bd15-e60ee389cd22",} 0.0
+seats_held{show_id="02b827d7-5da6-413c-8996-ae8d673e38af",} 0.0
+seats_held{show_id="61d7b445-2462-44e2-b087-8504eda2bd96",} 0.0
+seats_held{show_id="f479f397-713a-4852-9fa0-7dcaa7b1d0ea",} 0.0
+seats_held{show_id="90ffb6c9-ad78-42de-9b10-c99af2ea0766",} 0.0
+seats_held{show_id="b09ab6b0-e140-4873-b8e6-1d47ea8c6397",} 0.0
+seats_held{show_id="3b1d968e-050e-4ecf-a060-0dde0109c558",} 0.0
+seats_held{show_id="41f0ecea-e06e-40f0-aa0e-6089296c1aaf",} 0.0
+seats_held{show_id="6561b639-eb26-4ef6-93f5-757f3c442e35",} 0.0
+seats_held{show_id="4f2d4a4d-1995-4893-88af-a1aeee52e968",} 0.0
+seats_held{show_id="705e14cd-c28b-4559-acc2-735986584c24",} 0.0
+seats_held{show_id="31a6a5f4-c1f9-4a35-b6c3-0197d56e54fc",} 8.0
+seats_held{show_id="a8a6039b-7503-48d9-b5ba-0432ea63efaa",} 0.0
+seats_held{show_id="07050f0d-efd0-44b4-9188-14ca35e442d4",} 0.0
+seats_held{show_id="22b552fb-45a5-4e20-b0c0-ab89abdf4ea3",} 0.0
+seats_held{show_id="21a405a8-8112-49a0-9302-77bea7976e8e",} 0.0
+seats_held{show_id="19c55ef0-c4ad-4915-b3a5-e4259e4f7b90",} 0.0
+seats_held{show_id="5ea23342-912c-4e30-a27c-706bfb95e952",} 0.0
+seats_held{show_id="ad57d5d6-363d-4bfd-b6ad-488b11519be0",} 0.0
+seats_held{show_id="8bc47f04-d00d-4438-9aaf-03fe79e7ecdf",} 0.0
+seats_held{show_id="bf84671a-8d46-4670-9c7e-98c40bfb45d2",} 0.0
+seats_held{show_id="d6c2c9be-0977-46bd-b9cc-26c18c7aeb3c",} 0.0
+seats_held{show_id="e2f8cb7e-9f0c-46c6-8251-7d5454892f43",} 0.0
+seats_held{show_id="9cb2b706-274f-4f39-8cff-2495064fb77b",} 0.0
+seats_held{show_id="f7a0437c-7e0c-4d49-9baf-d07027c6447a",} 0.0
+seats_held{show_id="c37cf5c3-6190-49d0-ab97-206d7f36f19d",} 0.0
+seats_held{show_id="2233fd67-c052-4358-a3c7-06912a5b19e0",} 0.0
+seats_held{show_id="75a734ef-62f9-4cc1-b7de-be1b75f85d5f",} 0.0
+seats_held{show_id="ed6802fa-260e-4b36-984e-4f8617953861",} 0.0
+seats_held{show_id="5f698813-1b07-48ba-9c93-08c57dac4ce8",} 0.0
+seats_held{show_id="2289283a-cc72-41bf-bcfa-40bcd7f9f76f",} 0.0
+seats_held{show_id="cd31937b-51cb-4421-94ef-e0cd4d079827",} 0.0
+seats_held{show_id="49a7566a-99fe-4257-b613-48a977c7eae1",} 0.0
+seats_held{show_id="6ef99d12-1113-4170-81b5-95e0723594f7",} 0.0
+seats_held{show_id="cc82b962-b1d3-46b5-84a7-bbe40624ab95",} 0.0
+seats_held{show_id="df57af14-3aa5-4815-9adf-6c3f014b632c",} 0.0
+seats_held{show_id="0ae578ef-1d47-4e2a-9c29-d3de3a6c42ac",} 0.0
+seats_held{show_id="f20c07d7-157d-477f-8abf-1f78007d963e",} 0.0
+seats_held{show_id="fd2ee2a0-ad6a-49ba-b7ee-5d61fa941742",} 0.0
+seats_held{show_id="cb221ad5-4abb-4af5-ae7a-0d0b9d2b085b",} 0.0
+seats_held{show_id="537b97c5-162d-4930-b8f7-f6a5912a7616",} 0.0
+seats_held{show_id="cf3f6e9a-f786-4490-9638-965cdc189983",} 0.0
+seats_held{show_id="2442d797-d87b-43ac-85f8-31764f82c6ac",} 0.0
+seats_held{show_id="7336414e-8f9d-4cb0-9116-bd000566227c",} 0.0
+seats_held{show_id="cd3d29d3-0c52-423e-a642-495e3fdf14d8",} 0.0
+seats_held{show_id="615b35f0-838c-4dbc-b263-8423570a061f",} 0.0
+seats_held{show_id="701cd1c5-8928-412c-b2fd-56e713ed55aa",} 0.0
+seats_held{show_id="025ba372-644c-4ab9-90fa-3c4365e7c697",} 0.0
+seats_held{show_id="dd81c7e4-b1e5-40f6-ae00-8a3167dee0ec",} 0.0
+seats_held{show_id="bca74322-f50b-4051-88d7-5b6021647c60",} 0.0
+seats_held{show_id="34f07463-6e6a-4ff9-a1e8-4185b3ef857e",} 0.0
+seats_held{show_id="7f52fc5d-8c67-4a8f-bcb4-d47ef975dd08",} 0.0
+seats_held{show_id="e84bf04e-61ab-461e-80eb-c17e6c8bc786",} 0.0
+seats_held{show_id="094812e5-5e73-4b3f-bd36-96aa7373c087",} 0.0
+seats_held{show_id="69c4aab1-10d2-4319-b9f0-739e2b8bb676",} 0.0
+seats_held{show_id="5657c8fb-0558-4eb5-b311-82c607c11b38",} 0.0
+seats_held{show_id="cec23a56-1b4e-4ba8-83b3-3f55e27cc2dd",} 0.0
+seats_held{show_id="2fa1877d-6929-4bce-b5ba-95985891f29d",} 0.0
+seats_held{show_id="7df055d8-70bc-420f-93d8-2a31bcdc49c4",} 0.0
+seats_held{show_id="38b9f830-fb18-4ec2-9ae0-f49792527eaa",} 0.0
+seats_held{show_id="292dc925-d886-4a26-894e-2bed4f04d6ca",} 0.0
+seats_held{show_id="4afca84c-8400-40b9-b17f-2a2eecb51036",} 0.0
+seats_held{show_id="08c1a3e0-4d79-4aec-912b-0e344653d56a",} 0.0
+seats_held{show_id="c29f497d-7096-47a9-b785-1b77650fc185",} 0.0
+seats_held{show_id="dd19ccf3-50cd-4dd5-ac15-7a4b20bbc0d3",} 0.0
+seats_held{show_id="96d431f4-58bd-4678-acb8-7b6afac672e0",} 0.0
+seats_held{show_id="763c0c31-0758-49c4-8a54-7885679ea809",} 0.0
+seats_held{show_id="927ee90b-b521-4a1d-ae33-3ea11f6c20b3",} 0.0
+seats_held{show_id="f6fdc8db-936b-49b8-b74c-3a4398eb3556",} 0.0
+seats_held{show_id="d0e71cf3-d1ed-47c8-ab43-93739aa05242",} 0.0
+seats_held{show_id="29e55da0-340b-49e5-bc11-626a3247c28b",} 0.0
+seats_held{show_id="61e82407-9731-43df-ac0c-76b4653a09d3",} 0.0
+seats_held{show_id="a7566ee5-0074-4fe2-88fd-dcc949535990",} 0.0
+seats_held{show_id="0384d9fb-769b-44d9-b811-56fc406e2e89",} 0.0
+seats_held{show_id="c10bf83b-7991-4218-b00b-3631394d0cd7",} 0.0
+seats_held{show_id="ef957edd-573c-4153-b8c5-5d860d7b34b0",} 0.0
+seats_held{show_id="96f7fe0c-4010-4ebe-8aea-16e3913a743f",} 0.0
+seats_held{show_id="2c917a8b-e33d-4a00-8a8c-bfa2fba4919a",} 0.0
+seats_held{show_id="8f453d98-5c24-48bf-a931-fa2d1742e4b3",} 0.0
+seats_held{show_id="59fad1bb-bd07-4872-aeaf-3ba450b99e2d",} 0.0
+seats_held{show_id="5b85c1aa-e12d-47d9-bc3d-8a388fe4266e",} 0.0
+seats_held{show_id="8b01266c-93ef-429b-8cde-0bbaff2e30bd",} 0.0
+seats_held{show_id="107d9fa7-32f5-42f4-8c02-6474c51d8716",} 0.0
+seats_held{show_id="16622cd9-3ea5-4025-8a92-5ecbbbe2d64b",} 0.0
+seats_held{show_id="f2353cc6-f145-41fb-ac34-24900a2e7f9e",} 0.0
+seats_held{show_id="8b4183a2-08ec-4c33-86cf-49d92cb282dd",} 0.0
+seats_held{show_id="7d9a7c31-5931-4e70-aecc-f66af198d3cf",} 0.0
+seats_held{show_id="8af6a0e3-4a3c-4dc5-b955-e595773f9fdf",} 0.0
+seats_held{show_id="f3a72206-f814-4eaf-bf1d-5d1eec5b27fb",} 0.0
+seats_held{show_id="2853545c-6183-462e-9498-78607b84a7a8",} 0.0
+seats_held{show_id="ef88693d-dc5f-440d-b9f4-686d3991cbbd",} 0.0
+seats_held{show_id="3dd996d8-4cdd-46b6-9ffc-bf2e0de1466a",} 0.0
+seats_held{show_id="3f284b91-da23-4731-badc-3a24234c91cd",} 0.0
+seats_held{show_id="5f231766-ef6f-4f08-9ad9-5b796157a6ee",} 0.0
+seats_held{show_id="dfcbfa34-9160-4510-8472-50c4761060e5",} 0.0
+seats_held{show_id="84e09c78-5999-4f79-9bb6-3635db281702",} 0.0
+seats_held{show_id="73c4e72c-582b-4652-a95e-3a287adc20a3",} 0.0
+seats_held{show_id="4aab4b10-da87-48b5-a1b0-75b86bef5ab1",} 0.0
+seats_held{show_id="100f77b8-b6a3-4955-8ac8-374616fb03fd",} 0.0
+seats_held{show_id="ea5a2a40-81d0-4ff3-a7e2-9f0191b8b759",} 0.0
+seats_held{show_id="85deec5f-99b7-4488-9f68-40a5a9dbe367",} 0.0
+seats_held{show_id="2c650761-9262-4952-b143-0fce7ea31961",} 0.0
+seats_held{show_id="e4b3cb73-a909-422b-b213-d81e90d7504b",} 0.0
+seats_held{show_id="743e6362-e932-468c-9ced-e96e3e65c644",} 0.0
+seats_held{show_id="aa6a0746-7dcf-4c6a-83c2-83e4983eab52",} 0.0
+seats_held{show_id="db61c539-35e4-4075-8ea4-3970ddf013ea",} 0.0
+seats_held{show_id="87214257-b976-477e-9554-ac62090c47f1",} 0.0
+seats_held{show_id="12ac586e-8826-4710-97b7-c3b11703c229",} 0.0
+seats_held{show_id="2b2d470d-4792-4eef-a428-41a67f9c2caa",} 0.0
+seats_held{show_id="ac3b7064-9365-4dea-abdf-71f5244f21e4",} 0.0
+seats_held{show_id="e9c95553-f377-4640-981e-c7745c5f8fb5",} 0.0
+seats_held{show_id="b40cceb4-e904-4588-a748-2b45c498776c",} 0.0
+seats_held{show_id="9d04e2ea-dc31-41e0-a13e-d7c251e8c913",} 0.0
+seats_held{show_id="79ecc426-bdc8-40c4-8daa-b619c79727bf",} 0.0
+seats_held{show_id="dc42ff81-2b61-4e47-bdf8-b6a10a8e0dbe",} 0.0
+seats_held{show_id="fb88e0ed-b8ad-4261-a50c-d3e1d1cc306b",} 0.0
+seats_held{show_id="103e2604-f8fa-47d0-b2bf-90c8cbbdcfdc",} 0.0
+seats_held{show_id="1bee8f45-0ec1-4285-8ecb-14df0aa0cf58",} 0.0
+seats_held{show_id="7eeec72b-7c46-4ce6-87b0-a6064ab46da5",} 0.0
+seats_held{show_id="55868115-a601-428f-b1d2-d785a319c25f",} 0.0
+seats_held{show_id="e70877d5-e9d8-4cf6-bcb9-9e73c5549fb3",} 0.0
+seats_held{show_id="20e08ce9-787c-4df7-9eaf-066ee6b003c6",} 0.0
+seats_held{show_id="84083772-c616-4a37-8c8e-a36be17af7b2",} 0.0
+seats_held{show_id="4aee7e80-d441-4ded-8eeb-7e13298d5b88",} 0.0
+seats_held{show_id="7420c763-0cbf-4737-a377-32ca0a5d85c7",} 0.0
+seats_held{show_id="c8317f9e-a7e9-4396-8cfb-01ea0d61169e",} 0.0
+seats_held{show_id="0fcaaf0f-faed-4242-b354-8c764f9b9510",} 0.0
+seats_held{show_id="e6493c71-8628-4b43-80a3-8204b1567efa",} 0.0
+seats_held{show_id="08a8eb3b-def8-4bb0-8360-ebc2d300be0f",} 0.0
+seats_held{show_id="8fa73abd-e369-4e38-9de1-a80a564e8cdd",} 0.0
+seats_held{show_id="0c0add4d-e900-4b98-828f-2908e1e8974d",} 0.0
+seats_held{show_id="dfae82f9-f922-45e0-8c05-ac3a2e9b6247",} 0.0
+seats_held{show_id="48c4bcc4-c6ea-4df6-93b0-67799a25fe2e",} 0.0
+seats_held{show_id="cb581271-b5ba-49f7-a071-d2fabdd7a53c",} 0.0
+seats_held{show_id="191dfa4b-4fe7-491c-81a3-d41b59321bd4",} 0.0
+seats_held{show_id="6caf4357-9755-4e98-bd1b-89313d3ddfe5",} 0.0
+seats_held{show_id="dd96c1c4-9973-4ddf-8f09-1074a62c3689",} 0.0
+seats_held{show_id="f614cd6e-019f-4d30-844b-aedab7a4cde8",} 0.0
+seats_held{show_id="80e7fded-1a90-4ee0-ae3e-cec8145892b1",} 0.0
+seats_held{show_id="def9bc80-0871-4fca-80de-744c58babc88",} 0.0
+seats_held{show_id="f35757c8-f820-4fe8-b240-09c0d3490601",} 0.0
+seats_held{show_id="72cd8853-b71d-490e-a303-55df91cb4f0b",} 0.0
+seats_held{show_id="83bc882d-127f-43e1-a630-c7b07bfb6de3",} 0.0
+seats_held{show_id="0c17a13f-0957-4ad1-9fff-f1c4a1bcaff8",} 0.0
+seats_held{show_id="0edf1884-a0bd-445c-ae13-79ca26fb9cbe",} 0.0
+seats_held{show_id="098c5c60-1ee9-424a-bdbd-0bbf10ea1414",} 0.0
+seats_held{show_id="29a0ce40-91f1-4413-a4a5-db7242314480",} 0.0
+seats_held{show_id="b8316a29-19a7-493c-9459-3bc5b8e50700",} 0.0
+seats_held{show_id="ed143ee7-7c6e-41fb-a8eb-1c87b44ab9c8",} 0.0
+seats_held{show_id="880f784b-1ee3-41bb-8612-d66e75eb3f74",} 0.0
+seats_held{show_id="2f1cb79e-7ed3-4133-bc8f-ded96d7f1e16",} 0.0
+seats_held{show_id="87f3f0c2-2ab6-443e-92f0-7fff092e27c0",} 0.0
+seats_held{show_id="f4224b06-4cf3-4c8b-89ed-362bfd0610e3",} 0.0
+# HELP reservations_expired_total Holds expired
+# TYPE reservations_expired_total counter
+reservations_expired_total 3.0
+# HELP executor_completed_tasks_total The approximate total number of tasks that have completed execution
+# TYPE executor_completed_tasks_total counter
+executor_completed_tasks_total{name="applicationTaskExecutor",} 0.0
+executor_completed_tasks_total{name="taskScheduler",} 1080.0
+# HELP executor_pool_size_threads The current number of threads in the pool
+# TYPE executor_pool_size_threads gauge
+executor_pool_size_threads{name="applicationTaskExecutor",} 0.0
+executor_pool_size_threads{name="taskScheduler",} 4.0
+# HELP disk_free_bytes Usable space for path
+# TYPE disk_free_bytes gauge
+disk_free_bytes{path="/app/.",} 6.7632881664E10
+# HELP hikaricp_connections_timeout_total Connection timeout total count
+# TYPE hikaricp_connections_timeout_total counter
+hikaricp_connections_timeout_total{pool="HikariPool-1",} 0.0
+# HELP hikaricp_connections_idle Idle connections
+# TYPE hikaricp_connections_idle gauge
+hikaricp_connections_idle{pool="HikariPool-1",} 16.0
+# HELP application_ready_time_seconds Time taken for the application to be ready to service requests
+# TYPE application_ready_time_seconds gauge
+application_ready_time_seconds{main_application_class="com.seatreservation.SeatReservationApplication",} 37.787
+# HELP seats_held_total  
+# TYPE seats_held_total gauge
+seats_held_total 8.0
+# HELP jvm_threads_daemon_threads The current number of live daemon threads
+# TYPE jvm_threads_daemon_threads gauge
+jvm_threads_daemon_threads 25.0
+# HELP executor_pool_core_threads The core number of threads for the pool
+# TYPE executor_pool_core_threads gauge
+executor_pool_core_threads{name="applicationTaskExecutor",} 8.0
+executor_pool_core_threads{name="taskScheduler",} 4.0
+# HELP http_server_requests_active_seconds_max  
+# TYPE http_server_requests_active_seconds_max gauge
+http_server_requests_active_seconds_max{exception="none",method="GET",outcome="SUCCESS",status="200",uri="UNKNOWN",} 0.017737484
+http_server_requests_active_seconds_max{exception="none",method="HEAD",outcome="SUCCESS",status="200",uri="UNKNOWN",} 0.0
+http_server_requests_active_seconds_max{exception="none",method="DELETE",outcome="SUCCESS",status="200",uri="UNKNOWN",} 0.0
+http_server_requests_active_seconds_max{exception="none",method="POST",outcome="SUCCESS",status="200",uri="UNKNOWN",} 0.0
+# HELP http_server_requests_active_seconds  
+# TYPE http_server_requests_active_seconds summary
+http_server_requests_active_seconds_active_count{exception="none",method="GET",outcome="SUCCESS",status="200",uri="UNKNOWN",} 1.0
+http_server_requests_active_seconds_duration_sum{exception="none",method="GET",outcome="SUCCESS",status="200",uri="UNKNOWN",} 0.017728274
+http_server_requests_active_seconds_active_count{exception="none",method="HEAD",outcome="SUCCESS",status="200",uri="UNKNOWN",} 0.0
+http_server_requests_active_seconds_duration_sum{exception="none",method="HEAD",outcome="SUCCESS",status="200",uri="UNKNOWN",} 0.0
+http_server_requests_active_seconds_active_count{exception="none",method="DELETE",outcome="SUCCESS",status="200",uri="UNKNOWN",} 0.0
+http_server_requests_active_seconds_duration_sum{exception="none",method="DELETE",outcome="SUCCESS",status="200",uri="UNKNOWN",} 0.0
+http_server_requests_active_seconds_active_count{exception="none",method="POST",outcome="SUCCESS",status="200",uri="UNKNOWN",} 0.0
+http_server_requests_active_seconds_duration_sum{exception="none",method="POST",outcome="SUCCESS",status="200",uri="UNKNOWN",} 0.0
+# HELP reservations_declined_total  
+# TYPE reservations_declined_total counter
+reservations_declined_total{reason="invalid_seat",} 60.0
+reservations_declined_total{reason="seat_taken",} 34697.0
+reservations_declined_total{reason="hold_expired",} 31.0
+reservations_declined_total{reason="per_user_limit",} 926.0
+reservations_declined_total{reason="idempotent_replay",} 491.0
+reservations_declined_total{reason="contention",} 0.0
+reservations_declined_total{reason="idempotency_conflict",} 1.0
+# HELP process_files_open_files The open file descriptor count
+# TYPE process_files_open_files gauge
+process_files_open_files 31.0
+# HELP process_uptime_seconds The uptime of the Java virtual machine
+# TYPE process_uptime_seconds gauge
+process_uptime_seconds 1687.771
+# HELP seats_confirmed_total  
+# TYPE seats_confirmed_total gauge
+seats_confirmed_total 19071.0
+# HELP executor_pool_max_threads The maximum allowed number of threads in the pool
+# TYPE executor_pool_max_threads gauge
+executor_pool_max_threads{name="applicationTaskExecutor",} 2.147483647E9
+executor_pool_max_threads{name="taskScheduler",} 2.147483647E9
+# HELP jvm_info JVM version info
+# TYPE jvm_info gauge
+jvm_info{runtime="OpenJDK Runtime Environment",vendor="Eclipse Adoptium",version="17.0.20.1+1",} 1.0
+# HELP jvm_classes_unloaded_classes_total The total number of classes unloaded since the Java virtual machine has started execution
+# TYPE jvm_classes_unloaded_classes_total counter
+jvm_classes_unloaded_classes_total 163.0
+# HELP jvm_gc_pause_seconds Time spent in GC pause
+# TYPE jvm_gc_pause_seconds summary
+jvm_gc_pause_seconds_count{action="end of minor GC",cause="Allocation Failure",gc="Copy",} 337.0
+jvm_gc_pause_seconds_sum{action="end of minor GC",cause="Allocation Failure",gc="Copy",} 22.753
+jvm_gc_pause_seconds_count{action="end of major GC",cause="Allocation Failure",gc="MarkSweepCompact",} 10.0
+jvm_gc_pause_seconds_sum{action="end of major GC",cause="Allocation Failure",gc="MarkSweepCompact",} 5.853
+# HELP jvm_gc_pause_seconds_max Time spent in GC pause
+# TYPE jvm_gc_pause_seconds_max gauge
+jvm_gc_pause_seconds_max{action="end of minor GC",cause="Allocation Failure",gc="Copy",} 0.102
+jvm_gc_pause_seconds_max{action="end of major GC",cause="Allocation Failure",gc="MarkSweepCompact",} 0.0
+# HELP seat_hints_total  
+# TYPE seat_hints_total counter
+seat_hints_total{event="hit",} 29765.0
+seat_hints_total{event="learned",} 4886.0
+seat_hints_total{event="miss",} 12385.0
+seat_hints_total{event="dropped_stale",} 2327.0
+seat_hints_total{event="released",} 969.0
+# HELP jvm_gc_max_data_size_bytes Max size of long-lived heap memory pool
+# TYPE jvm_gc_max_data_size_bytes gauge
+jvm_gc_max_data_size_bytes 2.68435456E8
+# HELP executor_active_threads The approximate number of threads that are actively executing tasks
+# TYPE executor_active_threads gauge
+executor_active_threads{name="applicationTaskExecutor",} 0.0
+executor_active_threads{name="taskScheduler",} 0.0
+# HELP system_load_average_1m The sum of the number of runnable entities queued to available processors and the number of runnable entities running on the available processors averaged over a period of time
+# TYPE system_load_average_1m gauge
+system_load_average_1m 4.6279296875
+# HELP jvm_memory_usage_after_gc_percent The percentage of long-lived heap pool used after the last GC event, in the range [0..1]
+# TYPE jvm_memory_usage_after_gc_percent gauge
+jvm_memory_usage_after_gc_percent{area="heap",pool="long-lived",} 0.3395654261112213
+# HELP seats_available  
+# TYPE seats_available gauge
+seats_available{show_id="2091f53e-0b4d-4ced-9bc6-0652ce2ae652",} 25.0
+seats_available{show_id="44491c18-66ae-4e16-a025-94716d435810",} 3.0
+seats_available{show_id="f47f09d6-9338-45fe-8e5f-3fbfbd1a8554",} 9.0
+seats_available{show_id="edaee75a-8943-4e5b-8bbc-b8bf29702517",} 10.0
+seats_available{show_id="e9375849-6955-4568-a02e-039f30ef654b",} 0.0
+seats_available{show_id="729d8a1e-33d7-4abd-93ad-5bcd2985d444",} 0.0
+seats_available{show_id="34ff7624-7228-4972-8acf-7d3f7aa25326",} 30.0
+seats_available{show_id="408e4860-886d-4666-80ed-5bc7611f331a",} 27.0
+seats_available{show_id="032d616f-9755-4388-ad07-156e582a7b55",} 24.0
+seats_available{show_id="a73bf19e-33e2-46f3-b860-29e00cce3693",} 10.0
+seats_available{show_id="7ab37948-ee20-444d-803d-429e228815ae",} 10.0
+seats_available{show_id="c54d5fa2-bc0e-4eb8-8d59-b157caf39763",} 3.0
+seats_available{show_id="827eec55-ceae-4318-938f-be7f4973399f",} 0.0
+seats_available{show_id="f36e1620-5aaa-4528-b60c-25b36bd65ffc",} 2.0
+seats_available{show_id="e1ce4f2b-68f5-4dcc-87c4-139d8746307d",} 10.0
+seats_available{show_id="cf899dfc-95af-44cd-a345-d0323f24ca1f",} 99.0
+seats_available{show_id="dc97c5d0-4db0-4726-b9b8-9b5d7d6ba893",} 10.0
+seats_available{show_id="1e910739-e9ae-4d8f-8e1b-41ab4de8dcf8",} 19.0
+seats_available{show_id="d61b70e6-cb78-413d-93a1-b6629d99c2ce",} 50.0
+seats_available{show_id="97d3c1d1-de9d-43c6-9897-57655d53b02f",} 3.0
+seats_available{show_id="69995989-4be2-4594-82dc-3c9be37d8273",} 19.0
+seats_available{show_id="5e8e4bad-ad1e-48f0-b4ba-1ca308356907",} 24.0
+seats_available{show_id="6d7594fc-7675-41b6-95c5-bf39597c718d",} 14.0
+seats_available{show_id="05955ebf-750a-4387-9ce8-53385bc8509b",} 4.0
+seats_available{show_id="cc1b20c7-ba3a-437d-b7b0-f506ef88cc70",} 9.0
+seats_available{show_id="6fa69210-6342-4e8c-b057-abbb6d5c5b47",} 610.0
+seats_available{show_id="24742530-1f22-49cb-9dc0-1011d7ac4960",} 3.0
+seats_available{show_id="8067c75d-5834-4141-8853-99c0d04d1f48",} 2.0
+seats_available{show_id="edd10f8c-28b2-44f0-8be8-345c2fd974a1",} 0.0
+seats_available{show_id="80643a00-ffb4-4366-876d-e6f23f444db5",} 19.0
+seats_available{show_id="350bc06b-9cc8-4669-8168-7d7182ba8862",} 29.0
+seats_available{show_id="b4aa3a0b-3699-4eb1-a38f-52bcf6166c05",} 30.0
+seats_available{show_id="157e1373-5fce-4313-aba5-bd20904c7744",} 16.0
+seats_available{show_id="b5562e3a-1f22-43f3-864f-1b08c65a531a",} 0.0
+seats_available{show_id="7c816847-e094-4c46-83c7-06113c760e9d",} 610.0
+seats_available{show_id="48694280-02f1-4ce8-a9c3-1014e631bf95",} 3.0
+seats_available{show_id="4443a689-626e-4ade-96cb-54395277a8bf",} 9.0
+seats_available{show_id="a7b1380e-c1cb-482d-9da6-f7984af51566",} 24.0
+seats_available{show_id="c1ea69cb-31a1-490d-8c6d-55e34aa74a00",} 8.0
+seats_available{show_id="dd69a6f3-4525-4f4d-a0f0-f3c8902efcf6",} 22.0
+seats_available{show_id="54fa4ba8-c396-4a63-8490-b118ea66ba8e",} 2.0
+seats_available{show_id="b3d24d45-a30c-4a85-befb-0f642644411f",} 0.0
+seats_available{show_id="e16a3f7d-bd5f-4a24-acf2-1e4b3374ca55",} 0.0
+seats_available{show_id="40fb8263-3c15-435d-a4c1-3487dca3e47c",} 19.0
+seats_available{show_id="36fad7a1-e18c-4a9f-a789-201335a147ad",} 0.0
+seats_available{show_id="e010c1f5-fef0-4f50-8a90-d9dda0ec4d18",} 10.0
+seats_available{show_id="c7bbf894-f4e6-40d4-bf7a-bb4fb9fbf2ec",} 30.0
+seats_available{show_id="5224b67b-c6d9-4e56-93cb-0e349ca3cc38",} 10.0
+seats_available{show_id="60f1b09a-d941-4d17-b840-240361a8408e",} 0.0
+seats_available{show_id="5fe1c104-0db2-47c8-b7c7-9eb95acacd52",} 2.0
+seats_available{show_id="bc69ca71-e81c-4214-97fe-0630b0479679",} 24.0
+seats_available{show_id="c19ab002-39f0-498a-b783-37da7db9a9e4",} 10.0
+seats_available{show_id="f3a0489b-92a1-4506-848a-550418073060",} 239.0
+seats_available{show_id="104408cc-9b9f-4dda-8e1b-a5f13102ef28",} 10.0
+seats_available{show_id="6c658263-d00c-4f24-bfe0-6426799ba7a9",} 310.0
+seats_available{show_id="b33db7db-5e16-410f-98d6-b9c24fd1b75c",} 0.0
+seats_available{show_id="89a95443-d478-480c-bea6-b2574bef126d",} 0.0
+seats_available{show_id="fa6462c3-fb02-43f5-b3d6-ea4a41704df1",} 0.0
+seats_available{show_id="0a8486cf-2139-4294-826e-357fd59b0b7e",} 1.0
+seats_available{show_id="059a8fcc-a260-49e7-9054-319cde73b914",} 99.0
+seats_available{show_id="bb057e0f-563f-4fcb-81c2-bff2a0d3362c",} 9.0
+seats_available{show_id="ccac80db-d7fd-4ce3-9f4d-7dbb652e3e94",} 9.0
+seats_available{show_id="9d3377a3-6bdd-444a-8f6a-52e0ff8364aa",} 1.0
+seats_available{show_id="3c16844d-ab51-426d-bb3d-585761fc9230",} 9.0
+seats_available{show_id="0da1e63b-98ba-4cb9-87c5-ce8104f9c32d",} 3.0
+seats_available{show_id="83695dc8-3f76-40f3-add4-a5ee12032410",} 99.0
+seats_available{show_id="651563c1-161f-4e65-afae-4d2f228c26cd",} 0.0
+seats_available{show_id="72769de5-21fb-4570-83c0-055255f24df9",} 99.0
+seats_available{show_id="08d9667b-97d5-4d5d-8ecd-c1df5938ae74",} 1.0
+seats_available{show_id="3354d48c-d628-490f-8a45-f43334e3dab2",} 9.0
+seats_available{show_id="6662c968-6e53-4480-8bbc-4972325b15e6",} 1.0
+seats_available{show_id="c6b7c6b9-761a-4156-96c7-b80b3aee8168",} 1.0
+seats_available{show_id="a9aaa82e-de3e-45c1-9526-704e4796aad4",} 9.0
+seats_available{show_id="2dba0db4-6392-422e-a4f1-3a29bc32b120",} 98.0
+seats_available{show_id="1e987cb2-b637-4a2c-9cac-ac1a84e175b9",} 2.0
+seats_available{show_id="3154c0b8-fa01-4053-a72d-021cb25e9b93",} 1.0
+seats_available{show_id="20151820-e188-45b4-b15c-986ad554e2c8",} 30.0
+seats_available{show_id="08da58b5-a90a-4e80-bc75-5937cd169430",} 10.0
+seats_available{show_id="f63c9754-bbc4-4857-a161-e4a5ff557ac6",} 9.0
+seats_available{show_id="51f5961a-e40c-424f-bd15-e60ee389cd22",} 3.0
+seats_available{show_id="02b827d7-5da6-413c-8996-ae8d673e38af",} 0.0
+seats_available{show_id="61d7b445-2462-44e2-b087-8504eda2bd96",} 30.0
+seats_available{show_id="f479f397-713a-4852-9fa0-7dcaa7b1d0ea",} 2.0
+seats_available{show_id="90ffb6c9-ad78-42de-9b10-c99af2ea0766",} 30.0
+seats_available{show_id="b09ab6b0-e140-4873-b8e6-1d47ea8c6397",} 9.0
+seats_available{show_id="3b1d968e-050e-4ecf-a060-0dde0109c558",} 3.0
+seats_available{show_id="41f0ecea-e06e-40f0-aa0e-6089296c1aaf",} 10.0
+seats_available{show_id="6561b639-eb26-4ef6-93f5-757f3c442e35",} 0.0
+seats_available{show_id="4f2d4a4d-1995-4893-88af-a1aeee52e968",} 99.0
+seats_available{show_id="705e14cd-c28b-4559-acc2-735986584c24",} 0.0
+seats_available{show_id="31a6a5f4-c1f9-4a35-b6c3-0197d56e54fc",} 2.0
+seats_available{show_id="a8a6039b-7503-48d9-b5ba-0432ea63efaa",} 3.0
+seats_available{show_id="07050f0d-efd0-44b4-9188-14ca35e442d4",} 2.0
+seats_available{show_id="22b552fb-45a5-4e20-b0c0-ab89abdf4ea3",} 30.0
+seats_available{show_id="21a405a8-8112-49a0-9302-77bea7976e8e",} 10.0
+seats_available{show_id="19c55ef0-c4ad-4915-b3a5-e4259e4f7b90",} 99.0
+seats_available{show_id="5ea23342-912c-4e30-a27c-706bfb95e952",} 24.0
+seats_available{show_id="ad57d5d6-363d-4bfd-b6ad-488b11519be0",} 3.0
+seats_available{show_id="8bc47f04-d00d-4438-9aaf-03fe79e7ecdf",} 10.0
+seats_available{show_id="bf84671a-8d46-4670-9c7e-98c40bfb45d2",} 11.0
+seats_available{show_id="d6c2c9be-0977-46bd-b9cc-26c18c7aeb3c",} 1.0
+seats_available{show_id="e2f8cb7e-9f0c-46c6-8251-7d5454892f43",} 0.0
+seats_available{show_id="9cb2b706-274f-4f39-8cff-2495064fb77b",} 30.0
+seats_available{show_id="f7a0437c-7e0c-4d49-9baf-d07027c6447a",} 9.0
+seats_available{show_id="c37cf5c3-6190-49d0-ab97-206d7f36f19d",} 1.0
+seats_available{show_id="2233fd67-c052-4358-a3c7-06912a5b19e0",} 11.0
+seats_available{show_id="75a734ef-62f9-4cc1-b7de-be1b75f85d5f",} 130.0
+seats_available{show_id="ed6802fa-260e-4b36-984e-4f8617953861",} 1.0
+seats_available{show_id="5f698813-1b07-48ba-9c93-08c57dac4ce8",} 3.0
+seats_available{show_id="2289283a-cc72-41bf-bcfa-40bcd7f9f76f",} 310.0
+seats_available{show_id="cd31937b-51cb-4421-94ef-e0cd4d079827",} 2.0
+seats_available{show_id="49a7566a-99fe-4257-b613-48a977c7eae1",} 24.0
+seats_available{show_id="6ef99d12-1113-4170-81b5-95e0723594f7",} 255.0
+seats_available{show_id="cc82b962-b1d3-46b5-84a7-bbe40624ab95",} 1.0
+seats_available{show_id="df57af14-3aa5-4815-9adf-6c3f014b632c",} 0.0
+seats_available{show_id="0ae578ef-1d47-4e2a-9c29-d3de3a6c42ac",} 99.0
+seats_available{show_id="f20c07d7-157d-477f-8abf-1f78007d963e",} 1.0
+seats_available{show_id="fd2ee2a0-ad6a-49ba-b7ee-5d61fa941742",} 0.0
+seats_available{show_id="cb221ad5-4abb-4af5-ae7a-0d0b9d2b085b",} 3.0
+seats_available{show_id="537b97c5-162d-4930-b8f7-f6a5912a7616",} 19.0
+seats_available{show_id="cf3f6e9a-f786-4490-9638-965cdc189983",} 99.0
+seats_available{show_id="2442d797-d87b-43ac-85f8-31764f82c6ac",} 24.0
+seats_available{show_id="7336414e-8f9d-4cb0-9116-bd000566227c",} 130.0
+seats_available{show_id="cd3d29d3-0c52-423e-a642-495e3fdf14d8",} 19.0
+seats_available{show_id="615b35f0-838c-4dbc-b263-8423570a061f",} 9.0
+seats_available{show_id="701cd1c5-8928-412c-b2fd-56e713ed55aa",} 12.0
+seats_available{show_id="025ba372-644c-4ab9-90fa-3c4365e7c697",} 3.0
+seats_available{show_id="dd81c7e4-b1e5-40f6-ae00-8a3167dee0ec",} 0.0
+seats_available{show_id="bca74322-f50b-4051-88d7-5b6021647c60",} 310.0
+seats_available{show_id="34f07463-6e6a-4ff9-a1e8-4185b3ef857e",} 1.0
+seats_available{show_id="7f52fc5d-8c67-4a8f-bcb4-d47ef975dd08",} 10.0
+seats_available{show_id="e84bf04e-61ab-461e-80eb-c17e6c8bc786",} 0.0
+seats_available{show_id="094812e5-5e73-4b3f-bd36-96aa7373c087",} 19.0
+seats_available{show_id="69c4aab1-10d2-4319-b9f0-739e2b8bb676",} 1.0
+seats_available{show_id="5657c8fb-0558-4eb5-b311-82c607c11b38",} 19.0
+seats_available{show_id="cec23a56-1b4e-4ba8-83b3-3f55e27cc2dd",} 6.0
+seats_available{show_id="2fa1877d-6929-4bce-b5ba-95985891f29d",} 30.0
+seats_available{show_id="7df055d8-70bc-420f-93d8-2a31bcdc49c4",} 2.0
+seats_available{show_id="38b9f830-fb18-4ec2-9ae0-f49792527eaa",} 16.0
+seats_available{show_id="292dc925-d886-4a26-894e-2bed4f04d6ca",} 1.0
+seats_available{show_id="4afca84c-8400-40b9-b17f-2a2eecb51036",} 0.0
+seats_available{show_id="08c1a3e0-4d79-4aec-912b-0e344653d56a",} 19.0
+seats_available{show_id="c29f497d-7096-47a9-b785-1b77650fc185",} 9.0
+seats_available{show_id="dd19ccf3-50cd-4dd5-ac15-7a4b20bbc0d3",} 10.0
+seats_available{show_id="96d431f4-58bd-4678-acb8-7b6afac672e0",} 0.0
+seats_available{show_id="763c0c31-0758-49c4-8a54-7885679ea809",} 310.0
+seats_available{show_id="927ee90b-b521-4a1d-ae33-3ea11f6c20b3",} 0.0
+seats_available{show_id="f6fdc8db-936b-49b8-b74c-3a4398eb3556",} 19.0
+seats_available{show_id="d0e71cf3-d1ed-47c8-ab43-93739aa05242",} 0.0
+seats_available{show_id="29e55da0-340b-49e5-bc11-626a3247c28b",} 9.0
+seats_available{show_id="61e82407-9731-43df-ac0c-76b4653a09d3",} 610.0
+seats_available{show_id="a7566ee5-0074-4fe2-88fd-dcc949535990",} 10.0
+seats_available{show_id="0384d9fb-769b-44d9-b811-56fc406e2e89",} 9.0
+seats_available{show_id="c10bf83b-7991-4218-b00b-3631394d0cd7",} 9.0
+seats_available{show_id="ef957edd-573c-4153-b8c5-5d860d7b34b0",} 0.0
+seats_available{show_id="96f7fe0c-4010-4ebe-8aea-16e3913a743f",} 10.0
+seats_available{show_id="2c917a8b-e33d-4a00-8a8c-bfa2fba4919a",} 24.0
+seats_available{show_id="8f453d98-5c24-48bf-a931-fa2d1742e4b3",} 1.0
+seats_available{show_id="59fad1bb-bd07-4872-aeaf-3ba450b99e2d",} 0.0
+seats_available{show_id="5b85c1aa-e12d-47d9-bc3d-8a388fe4266e",} 2.0
+seats_available{show_id="8b01266c-93ef-429b-8cde-0bbaff2e30bd",} 1.0
+seats_available{show_id="107d9fa7-32f5-42f4-8c02-6474c51d8716",} 2.0
+seats_available{show_id="16622cd9-3ea5-4025-8a92-5ecbbbe2d64b",} 23.0
+seats_available{show_id="f2353cc6-f145-41fb-ac34-24900a2e7f9e",} 0.0
+seats_available{show_id="8b4183a2-08ec-4c33-86cf-49d92cb282dd",} 99.0
+seats_available{show_id="7d9a7c31-5931-4e70-aecc-f66af198d3cf",} 12.0
+seats_available{show_id="8af6a0e3-4a3c-4dc5-b955-e595773f9fdf",} 1.0
+seats_available{show_id="f3a72206-f814-4eaf-bf1d-5d1eec5b27fb",} 30.0
+seats_available{show_id="2853545c-6183-462e-9498-78607b84a7a8",} 10.0
+seats_available{show_id="ef88693d-dc5f-440d-b9f4-686d3991cbbd",} 1.0
+seats_available{show_id="3dd996d8-4cdd-46b6-9ffc-bf2e0de1466a",} 2.0
+seats_available{show_id="3f284b91-da23-4731-badc-3a24234c91cd",} 19.0
+seats_available{show_id="5f231766-ef6f-4f08-9ad9-5b796157a6ee",} 99.0
+seats_available{show_id="dfcbfa34-9160-4510-8472-50c4761060e5",} 30.0
+seats_available{show_id="84e09c78-5999-4f79-9bb6-3635db281702",} 9.0
+seats_available{show_id="73c4e72c-582b-4652-a95e-3a287adc20a3",} 9.0
+seats_available{show_id="4aab4b10-da87-48b5-a1b0-75b86bef5ab1",} 1.0
+seats_available{show_id="100f77b8-b6a3-4955-8ac8-374616fb03fd",} 1.0
+seats_available{show_id="ea5a2a40-81d0-4ff3-a7e2-9f0191b8b759",} 0.0
+seats_available{show_id="85deec5f-99b7-4488-9f68-40a5a9dbe367",} 2.0
+seats_available{show_id="2c650761-9262-4952-b143-0fce7ea31961",} 1.0
+seats_available{show_id="e4b3cb73-a909-422b-b213-d81e90d7504b",} 99.0
+seats_available{show_id="743e6362-e932-468c-9ced-e96e3e65c644",} 13.0
+seats_available{show_id="aa6a0746-7dcf-4c6a-83c2-83e4983eab52",} 10.0
+seats_available{show_id="db61c539-35e4-4075-8ea4-3970ddf013ea",} 10.0
+seats_available{show_id="87214257-b976-477e-9554-ac62090c47f1",} 30.0
+seats_available{show_id="12ac586e-8826-4710-97b7-c3b11703c229",} 9.0
+seats_available{show_id="2b2d470d-4792-4eef-a428-41a67f9c2caa",} 30.0
+seats_available{show_id="ac3b7064-9365-4dea-abdf-71f5244f21e4",} 99.0
+seats_available{show_id="e9c95553-f377-4640-981e-c7745c5f8fb5",} 2.0
+seats_available{show_id="b40cceb4-e904-4588-a748-2b45c498776c",} 23.0
+seats_available{show_id="9d04e2ea-dc31-41e0-a13e-d7c251e8c913",} 0.0
+seats_available{show_id="79ecc426-bdc8-40c4-8daa-b619c79727bf",} 10.0
+seats_available{show_id="dc42ff81-2b61-4e47-bdf8-b6a10a8e0dbe",} 0.0
+seats_available{show_id="fb88e0ed-b8ad-4261-a50c-d3e1d1cc306b",} 25.0
+seats_available{show_id="103e2604-f8fa-47d0-b2bf-90c8cbbdcfdc",} 9.0
+seats_available{show_id="1bee8f45-0ec1-4285-8ecb-14df0aa0cf58",} 10.0
+seats_available{show_id="7eeec72b-7c46-4ce6-87b0-a6064ab46da5",} 0.0
+seats_available{show_id="55868115-a601-428f-b1d2-d785a319c25f",} 10.0
+seats_available{show_id="e70877d5-e9d8-4cf6-bcb9-9e73c5549fb3",} 30.0
+seats_available{show_id="20e08ce9-787c-4df7-9eaf-066ee6b003c6",} 1.0
+seats_available{show_id="84083772-c616-4a37-8c8e-a36be17af7b2",} 19.0
+seats_available{show_id="4aee7e80-d441-4ded-8eeb-7e13298d5b88",} 0.0
+seats_available{show_id="7420c763-0cbf-4737-a377-32ca0a5d85c7",} 14.0
+seats_available{show_id="c8317f9e-a7e9-4396-8cfb-01ea0d61169e",} 2.0
+seats_available{show_id="0fcaaf0f-faed-4242-b354-8c764f9b9510",} 1.0
+seats_available{show_id="e6493c71-8628-4b43-80a3-8204b1567efa",} 9.0
+seats_available{show_id="08a8eb3b-def8-4bb0-8360-ebc2d300be0f",} 0.0
+seats_available{show_id="8fa73abd-e369-4e38-9de1-a80a564e8cdd",} 10.0
+seats_available{show_id="0c0add4d-e900-4b98-828f-2908e1e8974d",} 130.0
+seats_available{show_id="dfae82f9-f922-45e0-8c05-ac3a2e9b6247",} 310.0
+seats_available{show_id="48c4bcc4-c6ea-4df6-93b0-67799a25fe2e",} 0.0
+seats_available{show_id="cb581271-b5ba-49f7-a071-d2fabdd7a53c",} 9.0
+seats_available{show_id="191dfa4b-4fe7-491c-81a3-d41b59321bd4",} 9.0
+seats_available{show_id="6caf4357-9755-4e98-bd1b-89313d3ddfe5",} 0.0
+seats_available{show_id="dd96c1c4-9973-4ddf-8f09-1074a62c3689",} 3.0
+seats_available{show_id="f614cd6e-019f-4d30-844b-aedab7a4cde8",} 9.0
+seats_available{show_id="80e7fded-1a90-4ee0-ae3e-cec8145892b1",} 22.0
+seats_available{show_id="def9bc80-0871-4fca-80de-744c58babc88",} 2.0
+seats_available{show_id="f35757c8-f820-4fe8-b240-09c0d3490601",} 0.0
+seats_available{show_id="72cd8853-b71d-490e-a303-55df91cb4f0b",} 10.0
+seats_available{show_id="83bc882d-127f-43e1-a630-c7b07bfb6de3",} 19.0
+seats_available{show_id="0c17a13f-0957-4ad1-9fff-f1c4a1bcaff8",} 310.0
+seats_available{show_id="0edf1884-a0bd-445c-ae13-79ca26fb9cbe",} 24.0
+seats_available{show_id="098c5c60-1ee9-424a-bdbd-0bbf10ea1414",} 2.0
+seats_available{show_id="29a0ce40-91f1-4413-a4a5-db7242314480",} 99.0
+seats_available{show_id="b8316a29-19a7-493c-9459-3bc5b8e50700",} 10.0
+seats_available{show_id="ed143ee7-7c6e-41fb-a8eb-1c87b44ab9c8",} 154.0
+seats_available{show_id="880f784b-1ee3-41bb-8612-d66e75eb3f74",} 2.0
+seats_available{show_id="2f1cb79e-7ed3-4133-bc8f-ded96d7f1e16",} 9.0
+seats_available{show_id="87f3f0c2-2ab6-443e-92f0-7fff092e27c0",} 9.0
+seats_available{show_id="f4224b06-4cf3-4c8b-89ed-362bfd0610e3",} 10.0
+# HELP http_server_requests_seconds  
+# TYPE http_server_requests_seconds summary
+http_server_requests_seconds_count{error="none",exception="none",method="POST",outcome="SUCCESS",status="200",uri="/auth/token",} 4337.0
+http_server_requests_seconds_sum{error="none",exception="none",method="POST",outcome="SUCCESS",status="200",uri="/auth/token",} 3310.568849905
+http_server_requests_seconds_count{error="none",exception="none",method="GET",outcome="CLIENT_ERROR",status="403",uri="/reservations/{id}",} 1.0
+http_server_requests_seconds_sum{error="none",exception="none",method="GET",outcome="CLIENT_ERROR",status="403",uri="/reservations/{id}",} 0.004204082
+http_server_requests_seconds_count{error="none",exception="none",method="POST",outcome="CLIENT_ERROR",status="400",uri="/shows",} 120.0
+http_server_requests_seconds_sum{error="none",exception="none",method="POST",outcome="CLIENT_ERROR",status="400",uri="/shows",} 232.085984335
+http_server_requests_seconds_count{error="none",exception="none",method="POST",outcome="SUCCESS",status="200",uri="/reservations/{id}/cancel",} 771.0
+http_server_requests_seconds_sum{error="none",exception="none",method="POST",outcome="SUCCESS",status="200",uri="/reservations/{id}/cancel",} 1273.803554347
+http_server_requests_seconds_count{error="none",exception="none",method="DELETE",outcome="CLIENT_ERROR",status="405",uri="UNKNOWN",} 60.0
+http_server_requests_seconds_sum{error="none",exception="none",method="DELETE",outcome="CLIENT_ERROR",status="405",uri="UNKNOWN",} 8.15518855
+http_server_requests_seconds_count{error="none",exception="none",method="POST",outcome="SUCCESS",status="201",uri="/shows/{id}/reserve",} 1642.0
+http_server_requests_seconds_sum{error="none",exception="none",method="POST",outcome="SUCCESS",status="201",uri="/shows/{id}/reserve",} 5710.323018415
+http_server_requests_seconds_count{error="none",exception="none",method="POST",outcome="CLIENT_ERROR",status="403",uri="UNKNOWN",} 60.0
+http_server_requests_seconds_sum{error="none",exception="none",method="POST",outcome="CLIENT_ERROR",status="403",uri="UNKNOWN",} 83.049025797
+http_server_requests_seconds_count{error="none",exception="none",method="POST",outcome="CLIENT_ERROR",status="401",uri="UNKNOWN",} 180.0
+http_server_requests_seconds_sum{error="none",exception="none",method="POST",outcome="CLIENT_ERROR",status="401",uri="UNKNOWN",} 173.62713197
+http_server_requests_seconds_count{error="none",exception="none",method="GET",outcome="SUCCESS",status="200",uri="/shows/{id}",} 1164.0
+http_server_requests_seconds_sum{error="none",exception="none",method="GET",outcome="SUCCESS",status="200",uri="/shows/{id}",} 805.842757244
+http_server_requests_seconds_count{error="none",exception="none",method="HEAD",outcome="SUCCESS",status="200",uri="/**",} 1.0
+http_server_requests_seconds_sum{error="none",exception="none",method="HEAD",outcome="SUCCESS",status="200",uri="/**",} 0.395894931
+http_server_requests_seconds_count{error="none",exception="none",method="POST",outcome="CLIENT_ERROR",status="400",uri="/shows/{id}/reserve",} 360.0
+http_server_requests_seconds_sum{error="none",exception="none",method="POST",outcome="CLIENT_ERROR",status="400",uri="/shows/{id}/reserve",} 583.703415045
+http_server_requests_seconds_count{error="none",exception="none",method="POST",outcome="SUCCESS",status="200",uri="/shows/{id}/hold",} 4.0
+http_server_requests_seconds_sum{error="none",exception="none",method="POST",outcome="SUCCESS",status="200",uri="/shows/{id}/hold",} 2.614279281
+http_server_requests_seconds_count{error="none",exception="none",method="POST",outcome="CLIENT_ERROR",status="403",uri="/reservations/{id}/cancel",} 1.0
+http_server_requests_seconds_sum{error="none",exception="none",method="POST",outcome="CLIENT_ERROR",status="403",uri="/reservations/{id}/cancel",} 0.003405991
+http_server_requests_seconds_count{error="none",exception="none",method="GET",outcome="SUCCESS",status="200",uri="/reservations/{id}",} 1515.0
+http_server_requests_seconds_sum{error="none",exception="none",method="GET",outcome="SUCCESS",status="200",uri="/reservations/{id}",} 1830.224905903
+http_server_requests_seconds_count{error="none",exception="none",method="POST",outcome="CLIENT_ERROR",status="404",uri="/shows/{id}/reserve",} 60.0
+http_server_requests_seconds_sum{error="none",exception="none",method="POST",outcome="CLIENT_ERROR",status="404",uri="/shows/{id}/reserve",} 94.418184133
+http_server_requests_seconds_count{error="none",exception="none",method="POST",outcome="CLIENT_ERROR",status="409",uri="/shows/{id}/hold",} 1007.0
+http_server_requests_seconds_sum{error="none",exception="none",method="POST",outcome="CLIENT_ERROR",status="409",uri="/shows/{id}/hold",} 1878.826186052
+http_server_requests_seconds_count{error="none",exception="none",method="GET",outcome="SUCCESS",status="200",uri="/actuator/prometheus",} 6.0
+http_server_requests_seconds_sum{error="none",exception="none",method="GET",outcome="SUCCESS",status="200",uri="/actuator/prometheus",} 0.669339693
+http_server_requests_seconds_count{error="none",exception="none",method="GET",outcome="SUCCESS",status="200",uri="/**",} 1.0
+http_server_requests_seconds_sum{error="none",exception="none",method="GET",outcome="SUCCESS",status="200",uri="/**",} 0.003488042
+http_server_requests_seconds_count{error="none",exception="none",method="GET",outcome="SUCCESS",status="200",uri="/health/live",} 385.0
+http_server_requests_seconds_sum{error="none",exception="none",method="GET",outcome="SUCCESS",status="200",uri="/health/live",} 5.965541582
+http_server_requests_seconds_count{error="none",exception="none",method="POST",outcome="CLIENT_ERROR",status="409",uri="/reservations/{id}/confirm",} 31.0
+http_server_requests_seconds_sum{error="none",exception="none",method="POST",outcome="CLIENT_ERROR",status="409",uri="/reservations/{id}/confirm",} 27.576245137
+http_server_requests_seconds_count{error="none",exception="none",method="POST",outcome="SUCCESS",status="201",uri="/shows",} 17.0
+http_server_requests_seconds_sum{error="none",exception="none",method="POST",outcome="SUCCESS",status="201",uri="/shows",} 1.101334401
+http_server_requests_seconds_count{error="none",exception="none",method="POST",outcome="CLIENT_ERROR",status="409",uri="/shows/{id}/reserve",} 34617.0
+http_server_requests_seconds_sum{error="none",exception="none",method="POST",outcome="CLIENT_ERROR",status="409",uri="/shows/{id}/reserve",} 117794.195165339
+http_server_requests_seconds_count{error="none",exception="none",method="POST",outcome="SUCCESS",status="200",uri="/shows/{id}/reserve",} 487.0
+http_server_requests_seconds_sum{error="none",exception="none",method="POST",outcome="SUCCESS",status="200",uri="/shows/{id}/reserve",} 1135.020205651
+http_server_requests_seconds_count{error="none",exception="none",method="POST",outcome="SUCCESS",status="200",uri="/reservations/{id}/confirm",} 36.0
+http_server_requests_seconds_sum{error="none",exception="none",method="POST",outcome="SUCCESS",status="200",uri="/reservations/{id}/confirm",} 57.910091547
+http_server_requests_seconds_count{error="none",exception="none",method="GET",outcome="SUCCESS",status="200",uri="/health/ready",} 331.0
+http_server_requests_seconds_sum{error="none",exception="none",method="GET",outcome="SUCCESS",status="200",uri="/health/ready",} 54.826547808
+http_server_requests_seconds_count{error="none",exception="none",method="GET",outcome="CLIENT_ERROR",status="404",uri="/**",} 60.0
+http_server_requests_seconds_sum{error="none",exception="none",method="GET",outcome="CLIENT_ERROR",status="404",uri="/**",} 49.359870499
+http_server_requests_seconds_count{error="none",exception="none",method="POST",outcome="SUCCESS",status="201",uri="/shows/{id}/hold",} 77.0
+http_server_requests_seconds_sum{error="none",exception="none",method="POST",outcome="SUCCESS",status="201",uri="/shows/{id}/hold",} 89.368358207
+# HELP http_server_requests_seconds_max  
+# TYPE http_server_requests_seconds_max gauge
+http_server_requests_seconds_max{error="none",exception="none",method="POST",outcome="SUCCESS",status="200",uri="/auth/token",} 0.001461522
+http_server_requests_seconds_max{error="none",exception="none",method="GET",outcome="CLIENT_ERROR",status="403",uri="/reservations/{id}",} 0.004204082
+http_server_requests_seconds_max{error="none",exception="none",method="POST",outcome="CLIENT_ERROR",status="400",uri="/shows",} 9.901005348
+http_server_requests_seconds_max{error="none",exception="none",method="POST",outcome="SUCCESS",status="200",uri="/reservations/{id}/cancel",} 1.307280749
+http_server_requests_seconds_max{error="none",exception="none",method="DELETE",outcome="CLIENT_ERROR",status="405",uri="UNKNOWN",} 1.193719092
+http_server_requests_seconds_max{error="none",exception="none",method="POST",outcome="SUCCESS",status="201",uri="/shows/{id}/reserve",} 1.80047895
+http_server_requests_seconds_max{error="none",exception="none",method="POST",outcome="CLIENT_ERROR",status="403",uri="UNKNOWN",} 6.093778857
+http_server_requests_seconds_max{error="none",exception="none",method="POST",outcome="CLIENT_ERROR",status="401",uri="UNKNOWN",} 8.297923488
+http_server_requests_seconds_max{error="none",exception="none",method="GET",outcome="SUCCESS",status="200",uri="/shows/{id}",} 0.007744315
+http_server_requests_seconds_max{error="none",exception="none",method="HEAD",outcome="SUCCESS",status="200",uri="/**",} 0.0
+http_server_requests_seconds_max{error="none",exception="none",method="POST",outcome="CLIENT_ERROR",status="400",uri="/shows/{id}/reserve",} 9.905713381
+http_server_requests_seconds_max{error="none",exception="none",method="POST",outcome="SUCCESS",status="200",uri="/shows/{id}/hold",} 0.0
+http_server_requests_seconds_max{error="none",exception="none",method="POST",outcome="CLIENT_ERROR",status="403",uri="/reservations/{id}/cancel",} 0.003405991
+http_server_requests_seconds_max{error="none",exception="none",method="GET",outcome="SUCCESS",status="200",uri="/reservations/{id}",} 0.011112795
+http_server_requests_seconds_max{error="none",exception="none",method="POST",outcome="CLIENT_ERROR",status="404",uri="/shows/{id}/reserve",} 9.402404232
+http_server_requests_seconds_max{error="none",exception="none",method="POST",outcome="CLIENT_ERROR",status="409",uri="/shows/{id}/hold",} 8.312109735
+http_server_requests_seconds_max{error="none",exception="none",method="GET",outcome="SUCCESS",status="200",uri="/actuator/prometheus",} 0.078920953
+http_server_requests_seconds_max{error="none",exception="none",method="GET",outcome="SUCCESS",status="200",uri="/**",} 0.0
+http_server_requests_seconds_max{error="none",exception="none",method="GET",outcome="SUCCESS",status="200",uri="/health/live",} 0.09890896
+http_server_requests_seconds_max{error="none",exception="none",method="POST",outcome="CLIENT_ERROR",status="409",uri="/reservations/{id}/confirm",} 0.21061937
+http_server_requests_seconds_max{error="none",exception="none",method="POST",outcome="SUCCESS",status="201",uri="/shows",} 0.008050699
+http_server_requests_seconds_max{error="none",exception="none",method="POST",outcome="CLIENT_ERROR",status="409",uri="/shows/{id}/reserve",} 7.101257287
+http_server_requests_seconds_max{error="none",exception="none",method="POST",outcome="SUCCESS",status="200",uri="/shows/{id}/reserve",} 0.0
+http_server_requests_seconds_max{error="none",exception="none",method="POST",outcome="SUCCESS",status="200",uri="/reservations/{id}/confirm",} 0.007817926
+http_server_requests_seconds_max{error="none",exception="none",method="GET",outcome="SUCCESS",status="200",uri="/health/ready",} 0.0
+http_server_requests_seconds_max{error="none",exception="none",method="GET",outcome="CLIENT_ERROR",status="404",uri="/**",} 7.396031688
+http_server_requests_seconds_max{error="none",exception="none",method="POST",outcome="SUCCESS",status="201",uri="/shows/{id}/hold",} 0.008883212
+# HELP executor_queued_tasks The approximate number of tasks that are queued for execution
+# TYPE executor_queued_tasks gauge
+executor_queued_tasks{name="applicationTaskExecutor",} 0.0
+executor_queued_tasks{name="taskScheduler",} 2.0
+# HELP jvm_threads_peak_threads The peak live thread count since the Java virtual machine started or peak was reset
+# TYPE jvm_threads_peak_threads gauge
+jvm_threads_peak_threads 223.0
+# HELP tomcat_sessions_active_current_sessions  
+# TYPE tomcat_sessions_active_current_sessions gauge
+tomcat_sessions_active_current_sessions 0.0
+# HELP reservations_confirmed_total Reservations confirmed
+# TYPE reservations_confirmed_total counter
+reservations_confirmed_total 1677.0
+# HELP jvm_threads_live_threads The current number of live threads including both daemon and non-daemon threads
+# TYPE jvm_threads_live_threads gauge
+jvm_threads_live_threads 33.0
+# HELP tomcat_sessions_rejected_sessions_total  
+# TYPE tomcat_sessions_rejected_sessions_total counter
+tomcat_sessions_rejected_sessions_total 0.0
+# HELP tasks_scheduled_execution_active_seconds_max  
+# TYPE tasks_scheduled_execution_active_seconds_max gauge
+tasks_scheduled_execution_active_seconds_max{code_function="sweep",code_namespace="com.seatreservation.service.HoldExpirySweeper",exception="none",outcome="UNKNOWN",} 0.0
+tasks_scheduled_execution_active_seconds_max{code_function="probe",code_namespace="com.seatreservation.service.DbHealthMonitor",exception="none",outcome="UNKNOWN",} 0.0
+# HELP tasks_scheduled_execution_active_seconds  
+# TYPE tasks_scheduled_execution_active_seconds summary
+tasks_scheduled_execution_active_seconds_active_count{code_function="sweep",code_namespace="com.seatreservation.service.HoldExpirySweeper",exception="none",outcome="UNKNOWN",} 0.0
+tasks_scheduled_execution_active_seconds_duration_sum{code_function="sweep",code_namespace="com.seatreservation.service.HoldExpirySweeper",exception="none",outcome="UNKNOWN",} 0.0
+tasks_scheduled_execution_active_seconds_active_count{code_function="probe",code_namespace="com.seatreservation.service.DbHealthMonitor",exception="none",outcome="UNKNOWN",} 0.0
+tasks_scheduled_execution_active_seconds_duration_sum{code_function="probe",code_namespace="com.seatreservation.service.DbHealthMonitor",exception="none",outcome="UNKNOWN",} 0.0
+# HELP seat_hints_size  
+# TYPE seat_hints_size gauge
+seat_hints_size 41.0
+# HELP jvm_memory_committed_bytes The amount of memory in bytes that is committed for the Java virtual machine to use
+# TYPE jvm_memory_committed_bytes gauge
+jvm_memory_committed_bytes{area="heap",id="Tenured Gen",} 1.03456768E8
+jvm_memory_committed_bytes{area="heap",id="Eden Space",} 4.1418752E7
+jvm_memory_committed_bytes{area="nonheap",id="Metaspace",} 4.7251456E7
+jvm_memory_committed_bytes{area="nonheap",id="CodeCache",} 1.8284544E7
+jvm_memory_committed_bytes{area="heap",id="Survivor Space",} 5177344.0
+jvm_memory_committed_bytes{area="nonheap",id="Compressed Class Space",} 7012352.0
+# HELP jvm_buffer_count_buffers An estimate of the number of buffers in the pool
+# TYPE jvm_buffer_count_buffers gauge
+jvm_buffer_count_buffers{id="mapped - 'non-volatile memory'",} 0.0
+jvm_buffer_count_buffers{id="mapped",} 0.0
+jvm_buffer_count_buffers{id="direct",} 18.0
+# HELP system_cpu_count The number of processors available to the Java virtual machine
+# TYPE system_cpu_count gauge
+system_cpu_count 1.0
+# HELP jdbc_connections_idle Number of established but idle connections.
+# TYPE jdbc_connections_idle gauge
+jdbc_connections_idle{name="dataSource",} 16.0
+# HELP jvm_gc_memory_allocated_bytes_total Incremented for an increase in the size of the (young) heap memory pool after one GC to before the next
+# TYPE jvm_gc_memory_allocated_bytes_total counter
+jvm_gc_memory_allocated_bytes_total 1.323051816E10
+# HELP hikaricp_connections Total connections
+# TYPE hikaricp_connections gauge
+hikaricp_connections{pool="HikariPool-1",} 16.0
+# HELP jvm_gc_memory_promoted_bytes_total Count of positive increases in the size of the old generation memory pool before GC to after GC
+# TYPE jvm_gc_memory_promoted_bytes_total counter
+jvm_gc_memory_promoted_bytes_total 3.76182312E8
+# HELP jdbc_connections_min Minimum number of idle connections in the pool.
+# TYPE jdbc_connections_min gauge
+jdbc_connections_min{name="dataSource",} 8.0
+# HELP jdbc_connections_max Maximum number of active connections that can be allocated at the same time.
+# TYPE jdbc_connections_max gauge
+jdbc_connections_max{name="dataSource",} 16.0
+# HELP hikaricp_connections_max Max connections
+# TYPE hikaricp_connections_max gauge
+hikaricp_connections_max{pool="HikariPool-1",} 16.0
+# HELP disk_total_bytes Total space for path
+# TYPE disk_total_bytes gauge
+disk_total_bytes{path="/app/.",} 4.15381426176E11
+# HELP executor_queue_remaining_tasks The number of additional elements that this queue can ideally accept without blocking
+# TYPE executor_queue_remaining_tasks gauge
+executor_queue_remaining_tasks{name="applicationTaskExecutor",} 2.147483647E9
+executor_queue_remaining_tasks{name="taskScheduler",} 2.147483647E9
+# HELP logback_events_total Number of log events that were enabled by the effective log level
+# TYPE logback_events_total counter
+logback_events_total{level="warn",} 0.0
+logback_events_total{level="debug",} 0.0
+logback_events_total{level="error",} 0.0
+logback_events_total{level="trace",} 0.0
+logback_events_total{level="info",} 48596.0
