@@ -15,7 +15,7 @@ A JSON HTTP service that sells assigned seats and stays correct under load: a se
 Evidence that the deployed service behaves correctly is in [docs/LIVE-TEST-REPORT.md](docs/LIVE-TEST-REPORT.md) with the raw burst output, JSON report and Prometheus snapshot in `docs/evidence/`.
 
 ### 1. Commit history
-The history shows the real order of work: a baseline scaffold, then a rewrite of the core, then features and hardening each added with their tests (timed holds, run script, Swagger UI, validation and concurrency test suites, the adversarial burst suite, crash-durability fix, Postgres support, per-scenario timing, the log endpoint, the live report). Two honest caveats: the baseline commit was made shortly before the work began, and the core rewrite (JDBC, conditional UPDATE, allocation lock, scoped idempotency, JWT auth, readiness, metrics) landed as one large commit rather than one per feature, because those pieces were built and tested together.
+The history shows the real order of work: a baseline scaffold, then a rewrite of the core, then features and hardening each added with their tests (timed holds, run script, Swagger UI, validation and concurrency test suites, the adversarial burst suite, crash-durability fix, Postgres support, per-scenario timing, the log endpoint, the live report, then the database circuit breaker and Render health-check change, the Tomcat keep-alive tuning, the scheduler-isolation fix found by a live outage run, and the seat-hint cache with its live A/B). Two honest caveats: the baseline commit was made shortly before the work began, and the core rewrite (JDBC, conditional UPDATE, allocation lock, scoped idempotency, JWT auth, readiness, metrics) landed as one large commit rather than one per feature, because those pieces were built and tested together.
 
 ## The atomic decision
 
@@ -65,7 +65,7 @@ The database is the single source of truth, and the service chooses **consistenc
 * **Defect found by the live run 2, fixed, re-verified live in run 4:** the breaker had opened 66 s after the outage began instead of about 8 s, because Spring's default single-thread scheduler was held for 60 s by the hold sweeper (blocked on the dead connection pool), so the health probe could not run. A scheduler pool of 4 plus `SchedulerIsolationTest` fixes it; in the re-run the breaker opened 8 s after the outage began, every `503` answered in under 0.5 s, and the audit passed. One request already inside its transaction when the database vanished returned `500` instead of `503` (commit-time `TransactionSystemException`); that case is now mapped to `503` too.
 * **Not tested:** a partition that drops the database
 * **Durability.** PostgreSQL flushes each commit to its write-ahead log before the `201` is sent. On local H2 the same guarantee needed a fix: a `kill -9` test showed the default 500 ms write delay could lose the most recent confirmed bookings, so the default URL sets `WRITE_DELAY=0` (about 20 % lower throughput on a laptop). Data, idempotency keys, and expired-hold cleanup were verified to recover after a hard crash.
-* **Scaling.** The no-double-sell guarantee does not depend on the number of application instances. We still run one, because the Prometheus counters are per process and would split across instances.
+* **Scaling.** The no-double-sell guarantee does not depend on the number of application instances. We still run one, because the Prometheus counters are per process and would split across instances, and because the seat-hint cache is per process (a stale hint can only cost an unfair `seat_taken`, never a double sale).
 
 ## Seat hints (performance, advisory only)
 
@@ -123,7 +123,7 @@ I used an AI coding agent (Devin) heavily, working interactively in my terminal.
 * An idempotency gap (the same key reused on a different show returned the first show's reservation) survived the first design and was found while the burst suite was being hardened; it is now fixed with a regression test.
 
 **What is verified by running, and what is not:**
-* Verified: 53 automated tests, two full local burst runs (default and short hold TTL), a hard-crash restart test, eight live burst runs against the Render deployment (about 152,000 calls, no 5xx from the application, every counter reconciled), including one full-size run, and a live database-outage probe with a passing audit (see the live report).
+* Verified: 69 automated tests, two full local burst runs (default and short hold TTL), a hard-crash restart test, eleven live burst runs against the Render deployment (about 211,000 calls, no 5xx from the application, every counter reconciled), including one clean full-size run, and live database-outage probes with a passing audit (see the live report). Failed runs are kept in the report, not removed.
 * Verified with the seat-hint cache on: a scale-0.5 burst (19,836 calls) passed every check and was 19 % faster than the same suite with hints off. A first hints-on run failed an idempotency check (fixed; kept in the report). The full-size suite and the outage probe were run before the cache existed and have not been repeated with it on.
 * Verified on the current build: a third scale-0.5 burst (19,788 calls) passed all checks with the circuit breaker live - it never opened under load - and no request was lost.
 * Verified on the current build: the full-size suite (scale 1.0) passed cleanly - 37,808 calls, all checks, zero 5xx, zero transport failures - after the Tomcat keep-alive fix (300 s timeout, unlimited requests per connection).
@@ -133,8 +133,8 @@ I used an AI coding agent (Devin) heavily, working interactively in my terminal.
 ## Next
 
 1. **Postgres operations:** set `lock_timeout` and `statement_timeout` on connections so one stuck lock cannot hold a pooled connection; use a paid, highly available database (the free one expires after 30 days).
-2. **Scale out safely:** move counters to a shared store or scrape per instance and aggregate, then run several application instances against one database.
+2. **Scale out safely:** move counters to a shared store or scrape per instance and aggregate, then run several application instances against one database. The seat-hint cache needs a shared implementation first (a Redis-backed `cache/SeatHints` with a shared release counter, a short timeout, and a fall-through to the database when Redis is slow or down), or must be switched off.
 3. **Real identity:** replace the demo token issuer with an identity provider and short-lived tokens.
-5. **Abuse protection:** rate limiting per user and per IP, and a cap on the number of per-show gauges.
-6. **Observability:** distributed tracing, a Grafana dashboard, and alert rules for the six paging conditions above.
-7. **Capacity:** run the full-size burst against a larger instance to measure real headroom; the free tier handles about 25-35 requests/s. Also find the cause of the single unexplained transport failure seen in one scale-0.5 run.
+4. **Abuse protection:** rate limiting per user and per IP, and a cap on the number of per-show gauges.
+5. **Observability:** distributed tracing, a Grafana dashboard, and alert rules for the six paging conditions above.
+6. **Capacity:** run the full-size burst against a larger instance to measure real headroom; the free tier handles about 25-35 requests/s without the cache and about 33-44 with it. Repeat the full-size suite and the outage probe with the cache on.

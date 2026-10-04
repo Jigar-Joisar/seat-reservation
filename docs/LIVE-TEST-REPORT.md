@@ -1,23 +1,24 @@
 # Live test report
 
-Evidence that the deployed service behaves correctly, gathered on 2026-10-03 against the public deployment. It includes the runs that went wrong, the diagnosis, and what was not tested.
+Evidence that the deployed service behaves correctly, gathered on 2026-10-03 and 2026-10-04 against the public deployment. It includes the runs that went wrong, the diagnosis, and what was not tested.
 
 | | |
 |---|---|
 | Target | https://seat-reservation-9zhl.onrender.com |
 | Platform | Render, Docker web service, **free** instance, single instance |
 | Database | Render managed PostgreSQL (free), pool of 16 connections |
-| Deployed code | `6d1d9b7` (PostgreSQL support) for the first runs, `260c303` (adds the 503 fail-closed mapping) for the later runs; later commits change only the burst tool and docs |
+| Deployed code | `6d1d9b7` (PostgreSQL support) for the first runs, `260c303` (adds the 503 fail-closed mapping), `9562747`/`35de58c`/`4e5f0d2` (database circuit breaker, `/health/live` check, Tomcat keep-alive, scheduler isolation, 503 mapping for commit-time failures), `0795d6e`/`0b7ad62` (seat-hint cache, then the idempotency fix) |
 | Raw artifacts | everything referenced below is in [`docs/evidence/`](evidence/) |
 
 ## Summary
 
-* **Correctness held in every run.** Across the runs in the table below (about 152,000 reserve/hold calls) no seat was ever sold twice, no user exceeded the limit, no idempotent retry booked twice, and every client-observed outcome equalled the server's Prometheus counters. **The application produced no 5xx in any load run**: the server-side 5xx series is empty after every run. The only 5xx-class responses were the deliberate `503` during the outage test, Render's `502`s during that outage, and one `520` in the full-size run (see below).
+* **Correctness held in every run.** Across the runs in the table below (about 211,000 reserve/hold calls) no seat was ever sold twice, no user exceeded the limit, no idempotent retry booked twice, and every client-observed outcome equalled the server's Prometheus counters. **The application produced no 5xx in any load run**: the server-side 5xx series is empty after every run. The only 5xx-class responses were the deliberate `503` during the outage test, Render's `502`s during that outage, and one `520` in the full-size run (see below).
 * **The scale-0.5 suite has passed cleanly twice** (run 2 and run 3, the latter on the current build with the circuit breaker live; it never opened under load). Run 2 (19,779 calls, 650 s, 98 checks, 0 failed), and run 3 (19,788 calls, 665 s, all checks). The first run had **one unexplained transport failure** (a request that got no response and timed out client-side), reported below as a failed run.
 * **The full-size suite (scale 1.0) passed cleanly on run 2** (37,808 calls in 1,227 s, all checks, zero 5xx, zero transport failures) on the build with the Tomcat keep-alive fix. Run 1, on the older build, had one failure: a single `520` out of 6,000 sell-out responses. The application recorded no 5xx and the sell-out was exact; it is reported as a failed run, not a pass.
 * **Two single requests were lost between the client and the application** on the pre-fix build (one in the first scale-0.5 run, one `520` in the first full-size run). Neither has recurred in the three large runs since the keep-alive change (~77,000 calls). The cause is still not established, but the evidence is now consistent with a proxy/keep-alive race that the Tomcat tuning eliminated.
 * **A database outage is survived without data damage, and the corrected build is verified live.** In run 4 liveness stayed `200`, the breaker opened within 8 s, 62 reservations failed fast with `503` + `Retry-After` and none slower than 0.4 s, nothing was booked, the audit passed, and the service recovered by itself. The only imperfection was one `500` on a request already inside its transaction when the database vanished; that exception is now also mapped to `503`. See *Database outage test, run 4*.
-* **Throughput of the free instance is about 25-35 requests/s.**
+* **The seat-hint cache is about 19 % faster on the half-size suite** (568 s against 704 s with hints off, median latency 4.0 s to 2.6 s) with every check passing. Its first live run failed an idempotency check (3 of 450 parallel duplicates declined instead of replayed); it was fixed, a regression test added, and the fixed build re-measured. See *Seat hints: live A/B*. The full-size suite and the outage probe have not been repeated with the cache on.
+* **Throughput of the free instance is about 25-35 requests/s without the cache and about 33-44 with it.**
 
 ## Runs
 
@@ -30,6 +31,9 @@ Evidence that the deployed service behaves correctly, gathered on 2026-10-03 aga
 | 2026-10-03 21:01 IST | 0.5 | 300 s | 19,779 | 650 s | p50 3.6 / p99 20.8 s | PASS | **the reference run**; details below |
 | 2026-10-04 15:12 IST | 0.5 | 300 s | 19,788 | 665 s | p50 3.8 / p99 19.7 s | PASS | build `4e5f0d2`: circuit breaker, keep-alive tuning and scheduler fix live; breaker never opened, no lost request |
 | 2026-10-04 15:38 IST | 1.0 (full size), run 2 | 300 s | 37,808 | 1,227 s | p50 4.2 / p99 19.6 s | PASS | build `4e5f0d2`: keep-alive tuning live; all checks, zero 5xx, zero transport failures, breaker never opened |
+| 2026-10-04 16:48 IST | 0.5, hints off (A/B baseline) | 300 s | 19,836 | 704 s | p50 4.0 / p99 21.6 s | PASS | `SEAT_HINTS_MODE=off` on build `0795d6e` |
+| 2026-10-04 17:14 IST | 0.5, hints on (B1) | 300 s | 19,807 | 593 s | p50 2.3 / p99 21.1 s | **FAIL** | scenario 3: 3 of 450 parallel duplicates got `409` instead of a replay (hint read after the idempotency lookup); fixed |
+| 2026-10-04 18:28 IST | 0.5, hints on, fixed (B2) | 300 s | 19,836 | 568 s | p50 2.6 / p99 17.6 s | PASS | build `0b7ad62`; all checks, 19 % faster than the baseline |
 | 2026-10-03 21:38 IST | 1.0 (full size) | 300 s | 37,854 | 1,270 s | p50 3.9 / p99 21.1 s | **FAIL** | one `520` response in scenario 6; server-side clean, see below |
 
 Artifacts: [scale 0.2, 8 s TTL](evidence/burst-live-2026-10-03.txt) ([json](evidence/burst-live-2026-10-03.json), [metrics](evidence/metrics-live-after-burst.prom)) · [scale 0.15](evidence/burst-live-s015-2026-10-03.txt) · [scale 0.5 run 1, failed](evidence/burst-live-s050-run1-FAILED-2026-10-03.txt) ([metrics](evidence/metrics-after-s050-run1.prom)) · [scale 0.5 run 2](evidence/burst-live-s050-run2-2026-10-03.txt) ([json](evidence/burst-live-s050-run2-2026-10-03.json), [metrics](evidence/metrics-after-s050-run2.prom)) · [scale 1.0, failed](evidence/burst-live-s100-FAILED-2026-10-03.txt) ([json](evidence/burst-live-s100-FAILED-2026-10-03.json), [metrics](evidence/metrics-after-s100.prom)) · [scale 0.5 run 3](evidence/burst-live-s050-run3-2026-10-04.txt) ([json](evidence/burst-live-s050-run3-2026-10-04.json), [metrics](evidence/metrics-after-s050-run3.prom)) · [scale 1.0 run 2](evidence/burst-live-s100-run2-2026-10-04.txt) ([json](evidence/burst-live-s100-run2-2026-10-04.json), [metrics](evidence/metrics-after-s100-run2.prom)).

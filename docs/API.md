@@ -64,6 +64,8 @@ curl -s -XPOST $URL/shows/$SHOW/reserve -H "Authorization: Bearer $USER" -H 'Con
 * **409** `seat_taken`, `per_user_limit`, `idempotency_conflict`, `contention`.
 * **400** `invalid_request` (bad JSON, missing key, empty or duplicate seats, bad seat name) or `invalid_seat` (no such seat). **404** `show_not_found`.
 
+**Which decline you get.** A request that fails for several reasons at once (for example it asks for a taken seat while the user is also at the limit) may be answered with any one of the applicable 4xx codes; clients must handle each of them. Treat `seat_taken` as final for that seat and `contention` as retryable.
+
 **Multi-seat policy: all-or-nothing.** If any requested seat is unavailable, nothing is taken and the response is 409 `seat_taken`. This holds under concurrency.
 
 ### `POST /shows/{id}/hold` (user)
