@@ -60,6 +60,7 @@ Every setting has a default. Override with environment variables, a `.env` file 
 | `PER_USER_LIMIT` | `4` | default max seats per user per show (a show can override it) |
 | `HOLD_TTL_SECONDS` | `300` | how long a `hold` lasts before the seats are released |
 | `HOLD_SWEEP_MS` | `5000` | how often expired holds are swept |
+| `SEAT_HINTS_MODE` | `local` | `local` = in-process advisory `seat_taken` hints (Caffeine); `off` = every request goes to the database (kill switch). `SEAT_HINTS_MAX` (500000) and `SEAT_HINTS_TTL_SECONDS` (60) bound the cache |
 | `DB_POOL_SIZE` | `32` (`16` on Render) | JDBC connection pool size |
 | `DATABASE_URL` | file-backed H2 in `./data` (`WRITE_DELAY=0` for crash durability) | JDBC URL **or** `postgres://user:pass@host:port/db` (Render/Heroku style, auto-converted) |
 | `DATABASE_USER` / `DATABASE_PASSWORD` | `sa` / empty | credentials for `jdbc:` URLs that don't embed them |

@@ -42,6 +42,8 @@ Only one process may use `./data` at a time (H2 file lock).
 15. `server.tomcat.keep-alive-timeout` (300s) and `max-keep-alive-requests` (-1) are deliberate; they keep Tomcat from closing connections a fronting proxy may still reuse.
 16. `DATABASE_URL` accepts `jdbc:` URLs and `postgres://user:pass@host/db` (Render style, converted by `config/PostgresUrlInitializer`). For `jdbc:postgresql://` without embedded credentials use `DATABASE_USER`/`DATABASE_PASSWORD`.
 
+17. Seat hints (`cache/SeatHints`, mode `off|local`) are ADVISORY: they may only turn a request into an early `seat_taken`, never grant a booking, and every failure or miss must fall through to the database. Rules: read `hints.epoch()` before the first database read of a request and pass it to `learnTaken`; every path that can free a seat (`cancel`, `expireIfOverdue`) must call `hintReleased` AFTER the transaction, in a `finally`; `released` bumps the epoch before removing entries (that order is what stops a stale hint outliving a release). A hinted request still runs the idempotency replay lookup first. Documented precedence change: a request that is doomed for several reasons may now answer `seat_taken` before `per_user_limit` / `invalid_seat`. `assertDatabaseConsistent` asserts that no available seat carries a hint; keep it. Do not add a new code path that frees seats without invalidating.
+
 ## Conventions
 * JSON is snake_case (Jackson global strategy). DTOs are records in `api/Dtos`.
 * `AbstractApiTest` has HTTP helpers and `assertDatabaseConsistent(showId)`; call it at the end of any concurrency test.

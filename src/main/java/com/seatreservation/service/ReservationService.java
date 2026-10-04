@@ -1,7 +1,10 @@
 package com.seatreservation.service;
 
 import com.seatreservation.api.ApiException;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import com.seatreservation.api.Dtos.ReservationView;
+import com.seatreservation.cache.SeatHints;
 import io.micrometer.core.instrument.Timer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,13 +37,17 @@ public class ReservationService {
     private final ReservationMetrics metrics;
 
     private final long holdTtlSeconds;
+    private final SeatHints hints;
+    /** Shows are immutable after creation, so price and limit can be cached; only used while hints are enabled. */
+    private final Cache<String, long[]> showMeta = Caffeine.newBuilder().maximumSize(10_000).expireAfterWrite(java.time.Duration.ofMinutes(10)).build();
 
-    public ReservationService(JdbcTemplate jdbc, TransactionTemplate tx, ReservationMetrics metrics,
+    public ReservationService(JdbcTemplate jdbc, TransactionTemplate tx, ReservationMetrics metrics, SeatHints hints,
                               @org.springframework.beans.factory.annotation.Value("${app.hold-ttl-seconds}") long holdTtlSeconds) {
         this.jdbc = jdbc;
         this.tx = tx;
         this.metrics = metrics;
         this.holdTtlSeconds = holdTtlSeconds;
+        this.hints = hints;
     }
 
     public Result reserve(String showId, String userId, List<String> requested, String idemKey, boolean hold) {
@@ -76,14 +83,16 @@ public class ReservationService {
     }
 
     private Result doReserve(String showId, String userId, List<String> seats, String idemKey, boolean hold) {
+        long epoch = hints.epoch();
         Optional<Result> fast = replayIfExists(showId, userId, idemKey, seats);
         if (fast.isPresent()) return fast.get();
 
-        var show = jdbc.query("SELECT price_paise, per_user_limit FROM shows WHERE id = ?",
-                (rs, i) -> new long[]{rs.getLong(1), rs.getInt(2)}, showId);
-        if (show.isEmpty()) throw new ApiException(HttpStatus.NOT_FOUND, "show_not_found", "Show not found: " + showId);
-        long price = show.get(0)[0];
-        int limit = (int) show.get(0)[1];
+        String hinted = firstHintedTaken(showId, seats);
+        if (hinted != null) throw seatTaken(hinted);
+
+        long[] show = showMeta(showId);
+        long price = show[0];
+        int limit = (int) show[1];
 
         try {
             jdbc.update("INSERT INTO user_show_allocations (show_id, user_id, seats_held) VALUES (?,?,0)", showId, userId);
@@ -92,7 +101,7 @@ public class ReservationService {
         }
 
         try {
-            return tx.execute(st -> {
+            Result done = tx.execute(st -> {
                 Integer held = jdbc.queryForObject(
                         "SELECT seats_held FROM user_show_allocations WHERE show_id = ? AND user_id = ? FOR UPDATE", Integer.class, showId, userId);
                 Optional<Result> again = replayIfExists(showId, userId, idemKey, seats);
@@ -111,7 +120,8 @@ public class ReservationService {
                         boolean exists = Boolean.TRUE.equals(jdbc.queryForObject(
                                 "SELECT COUNT(*) > 0 FROM seats WHERE show_id = ? AND seat_number = ?", Boolean.class, showId, seat));
                         if (!exists) throw new ApiException(HttpStatus.BAD_REQUEST, "invalid_seat", "Unknown seat: " + seat);
-                        throw new ApiException(HttpStatus.CONFLICT, "seat_taken", "Seat already taken: " + seat, Map.of("seat", seat));
+                        hintTaken(showId, List.of(seat), epoch);
+                        throw seatTaken(seat);
                     }
                 }
                 long amount = Math.multiplyExact(price, (long) seats.size());
@@ -123,8 +133,52 @@ public class ReservationService {
                 log.info("reservation " + state, kv("reservation_id", reservationId), kv("show_id", showId), kv("user_id", userId), kv("seats", seats));
                 return new Result(new ReservationView(reservationId, showId, userId, seats, amount, state, expiresAt), false);
             });
+            if (done != null && !done.replay()) hintTaken(showId, seats, epoch);
+            return done;
         } catch (DuplicateKeyException e) {
             return replayIfExists(showId, userId, idemKey, seats).orElseThrow(() -> e);
+        }
+    }
+
+    private static ApiException seatTaken(String seat) {
+        return new ApiException(HttpStatus.CONFLICT, "seat_taken", "Seat already taken: " + seat, Map.of("seat", seat));
+    }
+
+    private long[] showMeta(String showId) {
+        long[] cached = hints.enabled() ? showMeta.getIfPresent(showId) : null;
+        if (cached != null) return cached;
+        var rows = jdbc.query("SELECT price_paise, per_user_limit FROM shows WHERE id = ?",
+                (rs, i) -> new long[]{rs.getLong(1), rs.getInt(2)}, showId);
+        if (rows.isEmpty()) throw new ApiException(HttpStatus.NOT_FOUND, "show_not_found", "Show not found: " + showId);
+        if (hints.enabled()) showMeta.put(showId, rows.get(0));
+        return rows.get(0);
+    }
+
+    /** Hints are advisory: a failing hint store must never fail or alter a request, so every call degrades to "no hint". */
+    private String firstHintedTaken(String showId, List<String> seats) {
+        if (!hints.enabled()) return null;
+        try {
+            for (String s : seats) if (hints.isTaken(showId, s)) return s;
+        } catch (RuntimeException e) {
+            log.warn("seat hint lookup failed, using the database: {}", e.getClass().getSimpleName());
+        }
+        return null;
+    }
+
+    private void hintTaken(String showId, List<String> seats, long epoch) {
+        try {
+            hints.learnTaken(showId, seats, epoch);
+        } catch (RuntimeException e) {
+            log.warn("seat hint write failed, ignored: {}", e.getClass().getSimpleName());
+        }
+    }
+
+    /** Called after a release may have committed, also when the commit outcome is unknown: removing a hint is always safe. */
+    private void hintReleased(String showId, Collection<String> seats) {
+        try {
+            hints.released(showId, seats);
+        } catch (RuntimeException e) {
+            log.warn("seat hint invalidation failed; the hint expires by TTL: {}", e.getClass().getSimpleName());
         }
     }
 
@@ -157,6 +211,14 @@ public class ReservationService {
     /** Owner-only, idempotent. Seats are released only if they still belong to THIS reservation. */
     public ReservationView cancel(String reservationId, String userId) {
         ReservationView current = get(reservationId, userId);
+        try {
+            return cancelTx(current, reservationId, userId);
+        } finally {
+            hintReleased(current.showId(), current.seats());
+        }
+    }
+
+    private ReservationView cancelTx(ReservationView current, String reservationId, String userId) {
         return tx.execute(st -> {
             lockAllocation(current.showId(), userId);
             String status = jdbc.queryForObject("SELECT status FROM reservations WHERE id = ? FOR UPDATE", String.class, reservationId);
@@ -204,12 +266,22 @@ public class ReservationService {
 
     /** Expires one overdue hold. Lock order matches the other paths: allocation -> reservation -> seats. */
     public boolean expireIfOverdue(String reservationId, String showId, String userId) {
+        String[] releasing = new String[1];
+        try {
+            return expireTx(reservationId, showId, userId, releasing);
+        } finally {
+            if (releasing[0] != null) hintReleased(showId, Arrays.asList(releasing[0].split(",")));
+        }
+    }
+
+    private boolean expireTx(String reservationId, String showId, String userId, String[] releasing) {
         Boolean done = tx.execute(st -> {
             lockAllocation(showId, userId);
-            var row = jdbc.query("SELECT status, expires_at FROM reservations WHERE id = ? FOR UPDATE",
-                    (rs, i) -> new Object[]{rs.getString(1), rs.getTimestamp(2)}, reservationId);
+            var row = jdbc.query("SELECT status, expires_at, seats FROM reservations WHERE id = ? FOR UPDATE",
+                    (rs, i) -> new Object[]{rs.getString(1), rs.getTimestamp(2), rs.getString(3)}, reservationId);
             if (row.isEmpty() || !"held".equals(row.get(0)[0]) || row.get(0)[1] == null
                     || !((Timestamp) row.get(0)[1]).toInstant().isBefore(Instant.now())) return false;
+            releasing[0] = (String) row.get(0)[2];
             int released = jdbc.update("UPDATE seats SET status = 'available', user_id = NULL, reservation_id = NULL "
                     + "WHERE reservation_id = ? AND status = 'held'", reservationId);
             jdbc.update("UPDATE reservations SET status = 'expired' WHERE id = ?", reservationId);

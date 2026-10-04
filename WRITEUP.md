@@ -67,6 +67,17 @@ The database is the single source of truth, and the service chooses **consistenc
 * **Durability.** PostgreSQL flushes each commit to its write-ahead log before the `201` is sent. On local H2 the same guarantee needed a fix: a `kill -9` test showed the default 500 ms write delay could lose the most recent confirmed bookings, so the default URL sets `WRITE_DELAY=0` (about 20 % lower throughput on a laptop). Data, idempotency keys, and expired-hold cleanup were verified to recover after a hard crash.
 * **Scaling.** The no-double-sell guarantee does not depend on the number of application instances. We still run one, because the Prometheus counters are per process and would split across instances.
 
+## Seat hints (performance, advisory only)
+
+In the full-size run 97 % of requests were `409 seat_taken`, and each still cost about eight database round trips. A hint cache lets a request for an already-taken seat fail early. The design rule is that the cache can only *reject*, never *grant*: the database remains the only thing that can sell a seat, so an empty, evicted, expired, restarted or failing cache changes performance, never an answer.
+
+* **What is cached:** `(show, seat) -> taken` (bounded to 500,000 entries, 60 s TTL) and the immutable price and per-user limit of a show. A hinted request still runs the idempotency lookup first, so a retry of a winning request still replays with `200`.
+* **Staleness:** a stale "taken" hint would wrongly reject a released seat. Releases (`cancel`, hold expiry) bump a global epoch and then remove their seats; a hint is only stored if the epoch is unchanged since the request began, so a hint learned from a read that predates a release is dropped. Invalidation runs in a `finally` after the transaction, because removing a hint is always safe. The TTL bounds anything this misses.
+* **Tested:** `SeatHintsTest`, `LocalSeatHintsTest`, `SeatHintsOffTest`, and every existing concurrency test now also asserts that no *available* seat carries a hint. Disabling the invalidation makes four of those tests fail.
+* **Behaviour change:** a request that is doomed for several reasons may now answer `seat_taken` before `per_user_limit` or `invalid_seat`; all are still 4xx declines.
+* **Kill switch:** `SEAT_HINTS_MODE=off`.
+* **Benefit:** not yet measured on the live deployment (see the live report). A local H2 comparison showed no difference, which is expected because H2 has no network round trip.
+
 ## Observability and what pages me at 2am
 
 * **Metrics** (`/actuator/prometheus`): `reservations_confirmed_total`, `reservations_held_total`, `reservations_cancelled_total`, `reservations_expired_total`, `reservations_declined_total{reason}` (`seat_taken`, `per_user_limit`, `idempotent_replay`, `idempotency_conflict`, `hold_expired`, `invalid_seat`, `contention`), `reservation_duration_seconds`, gauges `seats_available|held|confirmed{show_id}`, plus HTTP and Hikari pool metrics. They reconcile with the API and with what clients observe: in the live burst every counter equalled the client-side count exactly (see the live report).

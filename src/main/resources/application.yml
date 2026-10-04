@@ -67,6 +67,11 @@ app:
   hold-sweep-ms: ${HOLD_SWEEP_MS:5000}
   public-logs: ${PUBLIC_LOGS:true}
   db-probe-ms: ${DB_PROBE_MS:2000}
+  # Advisory seat_taken hints (see cache/SeatHints). off = every request goes to the database.
+  seat-hints:
+    mode: ${SEAT_HINTS_MODE:local}
+    max-entries: ${SEAT_HINTS_MAX:500000}
+    ttl-seconds: ${SEAT_HINTS_TTL_SECONDS:60}
 
 logging:
   level:

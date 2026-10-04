@@ -25,6 +25,7 @@ import static org.junit.jupiter.api.Assertions.*;
 abstract class AbstractApiTest {
     @LocalServerPort int port;
     @Autowired JdbcTemplate jdbc;
+    @Autowired com.seatreservation.cache.SeatHints hints;
     static final ObjectMapper M = new ObjectMapper();
     static final HttpClient HTTP = HttpClient.newBuilder().executor(Executors.newFixedThreadPool(64)).build();
     static String admin;
@@ -109,6 +110,10 @@ abstract class AbstractApiTest {
                 + "(SELECT COUNT(*) FROM seats s WHERE s.show_id=a.show_id AND s.user_id=a.user_id AND s.status<>'available')", Long.class, showId), "allocation drift");
         // 4. no user over the limit, never negative
         assertEquals(0L, jdbc.queryForObject("SELECT COUNT(*) FROM user_show_allocations a JOIN shows sh ON sh.id=a.show_id WHERE a.show_id=? AND (a.seats_held<0 OR a.seats_held>sh.per_user_limit)", Long.class, showId), "limit violated");
+        // 6. a hint may only ever say "taken" for a seat that really is taken: no available seat carries one
+        for (String seat : jdbc.queryForList("SELECT seat_number FROM seats WHERE show_id=? AND status='available'", String.class, showId)) {
+            assertFalse(hints.isTaken(showId, seat), "stale 'taken' hint on available seat " + seat);
+        }
         // 5. live reservations account for exactly the taken seats
         assertEquals(jdbc.queryForObject("SELECT COALESCE(SUM(seat_count),0) FROM reservations WHERE show_id=? AND status IN ('held','confirmed')", Long.class, showId),
                 jdbc.queryForObject("SELECT COUNT(*) FROM seats WHERE show_id=? AND status<>'available'", Long.class, showId), "reservation seat_count vs taken seats");
