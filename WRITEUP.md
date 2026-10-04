@@ -109,16 +109,16 @@ I used an AI coding agent (Devin) heavily, working interactively in my terminal.
 * An idempotency gap (the same key reused on a different show returned the first show's reservation) survived the first design and was found while the burst suite was being hardened; it is now fixed with a regression test.
 
 **What is verified by running, and what is not:**
-* Verified: 53 automated tests, two full local burst runs (default and short hold TTL), a hard-crash restart test, six live burst runs against the Render deployment (about 94,000 calls, no 5xx from the application, every counter reconciled), including one full-size run, and a live database-outage probe with a passing audit (see the live report).
+* Verified: 53 automated tests, two full local burst runs (default and short hold TTL), a hard-crash restart test, seven live burst runs against the Render deployment (about 94,000 calls, no 5xx from the application, every counter reconciled), including one full-size run, and a live database-outage probe with a passing audit (see the live report).
+* Verified on the current build: a third scale-0.5 burst (19,788 calls) passed all checks with the circuit breaker live - it never opened under load - and no request was lost.
 * Reported, not hidden: two live runs each lost one request between the client and the application: the first scale-0.5 run (a request that timed out) and the full-size run (a single `520` in the sell-out scenario, which failed that run's `zero 5xx` check). Neither left a trace in the server's counters or state, no application 5xx was recorded, and the cause is undetermined (a keep-alive race with Render's proxy is a candidate, untested). The full-size suite has therefore been run once and did not pass cleanly.
 * Not verified: a clean full-size run (scale 1.0) on the free instance, a confirm winning the expiry race on the live service, a partition under heavy load, and building the Docker image locally (Docker was not available; Render builds the image on every deploy).
 
 ## Next
 
-1. **Run the burst again** on the current build to confirm the circuit breaker never opens under load and to check whether the keep-alive change affects the rare lost-request issue.
-2. **Postgres operations:** set `lock_timeout` and `statement_timeout` on connections so one stuck lock cannot hold a pooled connection; use a paid, highly available database (the free one expires after 30 days).
-3. **Scale out safely:** move counters to a shared store or scrape per instance and aggregate, then run several application instances against one database.
-4. **Real identity:** replace the demo token issuer with an identity provider and short-lived tokens.
+1. **Postgres operations:** set `lock_timeout` and `statement_timeout` on connections so one stuck lock cannot hold a pooled connection; use a paid, highly available database (the free one expires after 30 days).
+2. **Scale out safely:** move counters to a shared store or scrape per instance and aggregate, then run several application instances against one database.
+3. **Real identity:** replace the demo token issuer with an identity provider and short-lived tokens.
 5. **Abuse protection:** rate limiting per user and per IP, and a cap on the number of per-show gauges.
 6. **Observability:** distributed tracing, a Grafana dashboard, and alert rules for the six paging conditions above.
 7. **Capacity:** run the full-size burst against a larger instance to measure real headroom; the free tier handles about 25-35 requests/s. Also find the cause of the single unexplained transport failure seen in one scale-0.5 run.
