@@ -1,0 +1,184 @@
+== target https://seat-reservation-9zhl.onrender.com   run=b45824da scale=0.5
+  PASS  readiness /health/ready == 200
+   hold TTL ~ 300s -> expiry scenarios SKIPPED (start the server with HOLD_TTL_SECONDS=3 to enable)
+
+== 1. hot-seat storm: 500 distinct users, one seat   [15:12:14]
+         1  201 created
+       499  409 seat_taken
+  PASS  exactly one 201 for the hot seat
+  PASS  other 499 got 409 seat_taken
+  PASS  zero 5xx
+  PASS  [storm] invariant 99+0+1 == 100
+  PASS  [storm] no seat appears in two live reservations
+  PASS  [storm] seat map (1 taken) == union of live reservations (1)
+  PASS  [storm] every seat's status matches its reservation's status
+  PASS  [storm] no user above limit 4 (max 1)
+   [time] scenario 1 took 34.9s (500 reserve/hold calls)
+
+== 2. on-sale stampede: 10000 requests, 2000 users, 500 seats, 5 hot seats, ~10% same-key retries   [15:12:49]
+   11000 requests in 315.1s (35 req/s)   latency ms  p50=4496 p95=14994 p99=21209 max=40297
+        70  200 replay/ok
+       448  201 created
+        21  409 per_user_limit
+     10461  409 seat_taken
+  PASS  zero 5xx during the stampede
+  PASS  invariant held on all 79 live samples during the burst
+  PASS  /health/ready stayed 200 on all 79 probes during the burst
+  PASS  every success is attributed to the token's user
+  PASS  [stampede] invariant 0+0+500 == 500
+  PASS  [stampede] no seat appears in two live reservations
+  PASS  [stampede] seat map (500 taken) == union of live reservations (500)
+  PASS  [stampede] every seat's status matches its reservation's status
+  PASS  [stampede] no user above limit 4 (max 4)
+  PASS  confirmed 500 within capacity 500
+  PASS  hot seat A1 has exactly one owner
+  PASS  hot seat A2 has exactly one owner
+  PASS  hot seat A3 has exactly one owner
+  PASS  hot seat A4 has exactly one owner
+  PASS  hot seat A5 has exactly one owner
+   [time] scenario 2 took 341.8s (11000 reserve/hold calls)
+
+== 3. idempotency: duplicate storm, same key/different seats, cross-user keys   [15:18:31]
+        49  200 replay/ok
+         1  201 created
+  PASS  50 parallel same-key requests -> exactly one reservation
+  PASS  same key, different seats -> 409
+  PASS  retries moved nothing extra
+       300  200 replay/ok
+       150  201 created
+  PASS  150 users x3 identical parallel requests -> 150 created + 300 replays
+  PASS  each user's duplicates all returned the same reservation
+  PASS  exactly 300 seats taken (no double charge)
+  PASS  same key string across 30 different users -> 30 independent reservations
+   [time] scenario 3 took 14.3s (531 reserve/hold calls)
+
+== 4. per-user limit under concurrency   [15:18:45]
+         4  201 created
+         6  409 per_user_limit
+  PASS  one user, 10 parallel reserves, limit 4 -> exactly 4 created, 6 per_user_limit
+  PASS  mixed reserve+hold by one user also capped at 4
+       300  201 created
+       300  409 per_user_limit
+  PASS  zero 5xx
+  PASS  75 users x 8 parallel distinct seats (plenty free) -> every user got exactly 4
+  PASS  [limit stampede] invariant 310+0+300 == 610
+  PASS  [limit stampede] no seat appears in two live reservations
+  PASS  [limit stampede] seat map (300 taken) == union of live reservations (300)
+  PASS  [limit stampede] every seat's status matches its reservation's status
+  PASS  [limit stampede] no user above limit 4 (max 4)
+   [time] scenario 4 took 23.9s (620 reserve/hold calls)
+
+== 5. multi-seat deadlock storm: crossed seat orders, all-or-nothing   [15:19:09]
+         5  201 created
+       145  409 seat_taken
+  PASS  only 201/409 outcomes (no deadlock errors, no 5xx)
+  PASS  [deadlock storm] invariant 0+0+12 == 12
+  PASS  [deadlock storm] no seat appears in two live reservations
+  PASS  [deadlock storm] seat map (12 taken) == union of live reservations (12)
+  PASS  [deadlock storm] every seat's status matches its reservation's status
+  PASS  [deadlock storm] no user above limit 4 (max 4)
+  PASS  seats taken (12) == seats in winning requests (12): failed requests leaked nothing
+   [time] scenario 5 took 5.8s (150 reserve/hold calls)
+
+== 6. sell-out: demand far above supply, every seat sold exactly once   [15:19:15]
+       200  201 created
+      2800  409 seat_taken
+  PASS  zero 5xx
+  PASS  [sell-out] invariant 0+0+200 == 200
+  PASS  [sell-out] no seat appears in two live reservations
+  PASS  [sell-out] seat map (200 taken) == union of live reservations (200)
+  PASS  [sell-out] every seat's status matches its reservation's status
+  PASS  [sell-out] no user above limit 4 (max 2)
+  PASS  number of 201s (200) == seats confirmed (200): no lost or duplicated sale
+   [time] scenario 6 took 93.1s (3000 reserve/hold calls)
+
+== 7. seat recycling: 3 seats, reserve/cancel churn by 200 users   [15:20:48]
+   wins=9 cancels=9 unexpected=0
+  PASS  every win was cancelled cleanly, no unexpected statuses
+  PASS  all seats back to available after the churn
+   [time] scenario 7 took 17.8s (600 reserve/hold calls)
+
+== 8. chaos mix: reserve / hold / confirm / cancel / replay / reads by 100 users   [15:21:05]
+  PASS  every response in the chaos run was 200/201/409 (no 5xx, no surprises)
+  PASS  [chaos] invariant 8+4+48 == 60
+  PASS  [chaos] no seat appears in two live reservations
+  PASS  [chaos] seat map (52 taken) == union of live reservations (52)
+  PASS  [chaos] every seat's status matches its reservation's status
+  PASS  [chaos] no user above limit 3 (max 3)
+   [time] scenario 8 took 98.1s (2922 reserve/hold calls)
+
+== 9. confirm vs cancel race on the same hold (30 rounds)   [15:22:44]
+   (confirm,cancel) status pairs: {(200, 200): 13, (409, 200): 17}
+  PASS  cancel always wins the final state, confirm is 200 or 409, never a mixed result
+  PASS  all 30 seats available afterwards
+   [time] scenario 9 took 11.3s (30 reserve/hold calls)
+
+== 10. hold expiry (needs a short TTL)   [15:22:55]
+   SKIPPED: hold TTL is long. Restart the server with HOLD_TTL_SECONDS=3 to run this scenario.
+   [time] scenario 10 took 0.0s (0 reserve/hold calls)
+
+== 11. hostile input and bad credentials under load   [15:22:55]
+  PASS  450 hostile requests all got their expected 4xx
+  PASS  zero 5xx for hostile input
+  PASS  unknown seats -> 400 invalid_seat
+  PASS  none of it changed the show
+   [time] scenario 11 took 7.6s (30 reserve/hold calls)
+
+== 12. cross-show isolation: same users, same seat names, two shows at once   [15:23:02]
+  PASS  show A: exactly one winner for A1
+  PASS  show B: exactly one winner for A1
+  PASS  [show A] invariant 9+0+1 == 10
+  PASS  [show A] no seat appears in two live reservations
+  PASS  [show A] seat map (1 taken) == union of live reservations (1)
+  PASS  [show A] every seat's status matches its reservation's status
+  PASS  [show A] no user above limit 4 (max 1)
+  PASS  [show B] invariant 9+0+1 == 10
+  PASS  [show B] no seat appears in two live reservations
+  PASS  [show B] seat map (1 taken) == union of live reservations (1)
+  PASS  [show B] every seat's status matches its reservation's status
+  PASS  [show B] no user above limit 4 (max 1)
+  PASS  each show sold exactly 1 seat; the shows did not affect each other
+   [time] scenario 12 took 13.0s (400 reserve/hold calls)
+
+== 13. ownership, spoofing and cancel safety   [15:23:16]
+  PASS  non-owner cancel -> 403
+  PASS  non-owner read -> 403
+  PASS  spoofed user_id in body ignored
+  PASS  owner cancel -> 200
+  PASS  released seat is re-bookable
+  PASS  stale cancel did not resurrect a seat confirmed to someone else
+  PASS  confirm is idempotent
+   [time] scenario 13 took 1.4s (4 reserve/hold calls)
+
+== metrics reconciliation (assumes no other traffic hit the service meanwhile)
+  PASS  confirmed counter delta (1320) == reserve 201s (1291) + hold confirmations (29)
+  PASS  held counter delta (60) == hold 201s (60)
+  PASS  declined[seat_taken] delta (17220) == observed (17220)
+  PASS  declined[per_user_limit] delta (717) == observed (717)
+  PASS  declined[idempotent_replay] delta (469) == observed (469)
+  PASS  declined[idempotency_conflict] delta (1) == observed (1)
+  PASS  declined[contention] delta (0) == observed (0)
+  PASS  declined[invalid_seat] delta (30) == observed (30)
+  PASS  declined[hold_expired] delta (22) == observed (22)
+  PASS  no transport-level failures (0)
+
+== SUMMARY
+   total reserve/hold calls: 19788   overall latency ms  p50=3805 p95=13903 p99=19698
+   overall outcomes: {'201 created': 1351, '409 seat_taken': 17220, '200 replay/ok': 469, '409 per_user_limit': 717, '409 idempotency_conflict': 1, '400 invalid_seat': 30}
+   started 2026-10-04 15:12:13 IST   finished 15:23:18   total 665.0s
+   [ok  ] 1. hot-seat storm: 500 distinct users, one seat  -- 34.9s, 500 calls
+   [ok  ] 2. on-sale stampede: 10000 requests, 2000 users, 500 seats, 5 hot seats, ~10% same-key retries  -- 341.8s, 11000 calls
+   [ok  ] 3. idempotency: duplicate storm, same key/different seats, cross-user keys  -- 14.3s, 531 calls
+   [ok  ] 4. per-user limit under concurrency  -- 23.9s, 620 calls
+   [ok  ] 5. multi-seat deadlock storm: crossed seat orders, all-or-nothing  -- 5.8s, 150 calls
+   [ok  ] 6. sell-out: demand far above supply, every seat sold exactly once  -- 93.1s, 3000 calls
+   [ok  ] 7. seat recycling: 3 seats, reserve/cancel churn by 200 users  -- 17.8s, 600 calls
+   [ok  ] 8. chaos mix: reserve / hold / confirm / cancel / replay / reads by 100 users  -- 98.1s, 2922 calls
+   [ok  ] 9. confirm vs cancel race on the same hold (30 rounds)  -- 11.3s, 30 calls
+   [ok  ] 10. hold expiry (needs a short TTL)  -- 0.0s, 0 calls
+   [ok  ] 11. hostile input and bad credentials under load  -- 7.6s, 30 calls
+   [ok  ] 12. cross-show isolation: same users, same seat names, two shows at once  -- 13.0s, 400 calls
+   [ok  ] 13. ownership, spoofing and cancel safety  -- 1.4s, 4 calls
+   report written to burst-live-s050-run3.json
+
+   ALL CHECKS PASSED
