@@ -84,10 +84,12 @@ public class ReservationService {
 
     private Result doReserve(String showId, String userId, List<String> seats, String idemKey, boolean hold) {
         long epoch = hints.epoch();
+        // The hint is read BEFORE the replay lookup, never after. A visible hint means the transaction that took the
+        // seat has already committed together with its reservation row, so the lookup below is guaranteed to see it:
+        // a parallel duplicate of the winning request replays instead of being rejected by its own winner's hint.
+        String hinted = firstHintedTaken(showId, seats);
         Optional<Result> fast = replayIfExists(showId, userId, idemKey, seats);
         if (fast.isPresent()) return fast.get();
-
-        String hinted = firstHintedTaken(showId, seats);
         if (hinted != null) throw seatTaken(hinted);
 
         long[] show = showMeta(showId);

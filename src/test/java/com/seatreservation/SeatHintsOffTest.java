@@ -6,7 +6,12 @@ import org.springframework.test.context.TestPropertySource;
 import static org.junit.jupiter.api.Assertions.*;
 
 /** The kill switch (SEAT_HINTS_MODE=off) must give identical behaviour with no hint state at all. */
-@TestPropertySource(properties = "app.seat-hints.mode=off")
+/**
+ * Own in-memory database on purpose: cached Spring contexts share the default one, and this context's hold sweeper
+ * would release seats without telling the other contexts' hint stores (exactly the multi-instance staleness case).
+ */
+@TestPropertySource(properties = {"app.seat-hints.mode=off",
+        "spring.datasource.url=jdbc:h2:mem:seatsoff;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;LOCK_TIMEOUT=15000;DB_CLOSE_DELAY=-1"})
 class SeatHintsOffTest extends AbstractApiTest {
     private final String sfx = java.util.UUID.randomUUID().toString().substring(0, 8);
     @Test void offModeStoresNothingAndStillDecidesCorrectly() throws Exception {

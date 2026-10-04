@@ -224,6 +224,24 @@ Same probe again after `35de58c` (scheduler pool 4) was deployed. The Postgres w
 
 The scheduler fix verified live: with a separate thread the monitor detected the outage inside 8 s (three 2 s probes), requests failed fast for the whole outage, and the service recovered by itself. One honest imperfection remains: a single request that was already inside its transaction when the database vanished returned `500 internal_error` instead of `503`, because the commit-time failure threw `TransactionSystemException`, which was not in the 503 mapping. That request raced the suspend itself (t=106, a second before readiness first reported DOWN); the audit confirms it booked nothing. The mapping has since been widened so mid-flight transaction failures also answer `503` + `Retry-After`.
 
+## Seat hints: live A/B on Render Postgres (scale 0.5)
+
+Two runs of the same suite on the same build (`0795d6e`), switching only `SEAT_HINTS_MODE` (`off` then `local`). Artifacts: [off](evidence/burst-hints-off-2026-10-04.txt) ([json](evidence/burst-hints-off-2026-10-04.json), [metrics](evidence/metrics-hints-off.prom)) · [local, failed](evidence/burst-hints-local-run1-FAILED-2026-10-04.txt) ([json](evidence/burst-hints-local-run1-FAILED-2026-10-04.json), [metrics](evidence/metrics-hints-local-run1-FAILED.prom)).
+
+| | hints off | hints local (run 1, **FAILED**) |
+|---|---|---|
+| Calls | 19,836 | 19,807 |
+| Total time | 703.6 s | 592.8 s |
+| Stampede (11,000 calls) | 331 s, 33 req/s | 262 s, 42 req/s |
+| Overall p50 / p95 / p99 | 4.0 / 14.5 / 21.6 s | 2.3 / 14.0 / 21.1 s |
+| Result | all checks passed | **1 check failed** (scenario 3) |
+| 5xx / transport failures / Hikari timeouts | 0 / 0 / 0 | 0 / 0 / 0 |
+| Hint counters | none | 15,599 hits, 5,763 misses, 2,805 learned, 722 dropped as stale, 445 releases |
+
+The cache made this run about 16 % faster (median latency down from 4.0 s to 2.3 s), but **the run failed a correctness check and is not accepted**: in scenario 3, 3 of the 450 parallel duplicate requests got `409 seat_taken` instead of a replay (297 replays instead of 300). No seat was double-booked and the counters reconciled, but a retried request was declined, which breaks the idempotency promise. Cause: the hint was read after the idempotency lookup, so a duplicate could be rejected by the hint its own winner had just stored. Fixed by reading the hint first; a parallel regression test reproduces the bug on the old code. The speed figures above were measured on the buggy build, so they must be re-measured on the fixed one before any claim is made. Other differences are expected from the documented precedence change: `per_user_limit` declines fell from 719 to 408 because requests doomed for two reasons now answer `seat_taken`.
+
+The unmodified baseline runs for this build size were 650-704 s, so run-to-run variation is roughly 5-8 %; a result must clear that to count.
+
 ## Log access
 
 The platform offers no public log URL, so the service exposes `GET /ops/logs` (README, *Public log access*). Checked live: a reservation's `X-Request-ID` returned both its access line and its `reservation confirmed` event ([sample](evidence/logs-live-sample.json)), and a 1000-entry dump taken after a burst contained none of the admin secret, any issued token, `Authorization`, `Bearer`, a stack trace, `jdbc:`, `postgres` or `password`; 977 of 1000 entries carried a `request_id` and the rest were background hold-expiry events. The buffer holds the last 2000 events, which under burst load is roughly the last minute.

@@ -49,6 +49,22 @@ class SeatHintsTest extends AbstractApiTest {
         assertEquals(200, replay.status(), "a retry of the winning request must replay, not 409");
     }
 
+    /** Found by the live burst: a parallel duplicate must replay, not be rejected by the hint its own winner just created. */
+    @Test void parallelDuplicatesOfTheWinningRequestAllReplay() throws Exception {
+        for (int round = 0; round < 8; round++) {
+            String show = show(300, null);
+            int users = 60, copies = 3, r = round;
+            var statuses = parallel(users * copies, i -> {
+                int u = i % users;
+                return reserve(show, token("dup" + u + "r" + r + sfx), k("dupkey" + u), "A" + (u + 1)).status();
+            });
+            assertEquals(users, statuses.stream().filter(x -> x == 201).count(), "round " + round);
+            assertEquals(users * (copies - 1), statuses.stream().filter(x -> x == 200).count(),
+                    "every duplicate must replay (round " + round + "): " + statuses.stream().filter(x -> x == 409).count() + " got 409");
+            assertDatabaseConsistent(show);
+        }
+    }
+
     @Test void cancelInvalidatesTheHintSoTheSeatIsImmediatelyBookable() {
         String show = show(5, null);
         String a = token("a" + sfx), b = token("b" + sfx);
