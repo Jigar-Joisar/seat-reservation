@@ -12,13 +12,13 @@ Evidence that the deployed service behaves correctly, gathered on 2026-10-03 and
 
 ## Summary
 
-* **Correctness held in every run.** Across the runs in the table below (about 211,000 reserve/hold calls) no seat was ever sold twice, no user exceeded the limit, no idempotent retry booked twice, and every client-observed outcome equalled the server's Prometheus counters. **The application produced no 5xx in any load run**: the server-side 5xx series is empty after every run. The only 5xx-class responses were the deliberate `503` during the outage test, Render's `502`s during that outage, and one `520` in the full-size run (see below).
+* **Correctness held in every run.** Across the runs in the table below (about 249,000 reserve/hold calls) no seat was ever sold twice, no user exceeded the limit, no idempotent retry booked twice, and every client-observed outcome equalled the server's Prometheus counters. **The application produced no 5xx in any load run**: the server-side 5xx series is empty after every run. The only 5xx-class responses were the deliberate `503` during the outage test, Render's `502`s during that outage, and one `520` in the full-size run (see below).
 * **The scale-0.5 suite has passed cleanly twice** (run 2 and run 3, the latter on the current build with the circuit breaker live; it never opened under load). Run 2 (19,779 calls, 650 s, 98 checks, 0 failed), and run 3 (19,788 calls, 665 s, all checks). The first run had **one unexplained transport failure** (a request that got no response and timed out client-side), reported below as a failed run.
 * **The full-size suite (scale 1.0) passed cleanly on run 2** (37,808 calls in 1,227 s, all checks, zero 5xx, zero transport failures) on the build with the Tomcat keep-alive fix. Run 1, on the older build, had one failure: a single `520` out of 6,000 sell-out responses. The application recorded no 5xx and the sell-out was exact; it is reported as a failed run, not a pass.
 * **Two single requests were lost between the client and the application** on the pre-fix build (one in the first scale-0.5 run, one `520` in the first full-size run). Neither has recurred in the three large runs since the keep-alive change (~77,000 calls). The cause is still not established, but the evidence is now consistent with a proxy/keep-alive race that the Tomcat tuning eliminated.
 * **A database outage is survived without data damage, and the corrected build is verified live.** In run 4 liveness stayed `200`, the breaker opened within 8 s, 62 reservations failed fast with `503` + `Retry-After` and none slower than 0.4 s, nothing was booked, the audit passed, and the service recovered by itself. The only imperfection was one `500` on a request already inside its transaction when the database vanished; that exception is now also mapped to `503`. See *Database outage test, run 4*.
-* **The seat-hint cache is about 19 % faster on the half-size suite** (568 s against 704 s with hints off, median latency 4.0 s to 2.6 s) with every check passing. Its first live run failed an idempotency check (3 of 450 parallel duplicates declined instead of replayed); it was fixed, a regression test added, and the fixed build re-measured. See *Seat hints: live A/B*. The full-size suite and the outage probe have not been repeated with the cache on.
-* **Throughput of the free instance is about 25-35 requests/s without the cache and about 33-44 with it.**
+* **The seat-hint cache is about 19 % faster on the half-size suite** (568 s against 704 s with hints off, median latency 4.0 s to 2.6 s) with every check passing. Its first live run failed an idempotency check (3 of 450 parallel duplicates declined instead of replayed); it was fixed, a regression test added, and the fixed build re-measured. See *Seat hints: live A/B*. It was then confirmed at full size (below); the outage probe has not been repeated with the cache on.
+* **Throughput of the free instance is about 25-35 requests/s without the cache and about 33-47 with it.**
 
 ## Runs
 
@@ -34,6 +34,7 @@ Evidence that the deployed service behaves correctly, gathered on 2026-10-03 and
 | 2026-10-04 16:48 IST | 0.5, hints off (A/B baseline) | 300 s | 19,836 | 704 s | p50 4.0 / p99 21.6 s | PASS | `SEAT_HINTS_MODE=off` on build `0795d6e` |
 | 2026-10-04 17:14 IST | 0.5, hints on (B1) | 300 s | 19,807 | 593 s | p50 2.3 / p99 21.1 s | **FAIL** | scenario 3: 3 of 450 parallel duplicates got `409` instead of a replay (hint read after the idempotency lookup); fixed |
 | 2026-10-04 18:28 IST | 0.5, hints on, fixed (B2) | 300 s | 19,836 | 568 s | p50 2.6 / p99 17.6 s | PASS | build `0b7ad62`; all checks, 19 % faster than the baseline |
+| 2026-10-04 18:59 IST | 1.0 (full size), hints on | 300 s | 37,894 | 965 s | p50 2.0 / p99 20.3 s | PASS | build `0b7ad62`: all checks, zero 5xx, zero transport failures; 21 % faster than full-size run 2 without hints |
 | 2026-10-03 21:38 IST | 1.0 (full size) | 300 s | 37,854 | 1,270 s | p50 3.9 / p99 21.1 s | **FAIL** | one `520` response in scenario 6; server-side clean, see below |
 
 Artifacts: [scale 0.2, 8 s TTL](evidence/burst-live-2026-10-03.txt) ([json](evidence/burst-live-2026-10-03.json), [metrics](evidence/metrics-live-after-burst.prom)) · [scale 0.15](evidence/burst-live-s015-2026-10-03.txt) · [scale 0.5 run 1, failed](evidence/burst-live-s050-run1-FAILED-2026-10-03.txt) ([metrics](evidence/metrics-after-s050-run1.prom)) · [scale 0.5 run 2](evidence/burst-live-s050-run2-2026-10-03.txt) ([json](evidence/burst-live-s050-run2-2026-10-03.json), [metrics](evidence/metrics-after-s050-run2.prom)) · [scale 1.0, failed](evidence/burst-live-s100-FAILED-2026-10-03.txt) ([json](evidence/burst-live-s100-FAILED-2026-10-03.json), [metrics](evidence/metrics-after-s100.prom)) · [scale 0.5 run 3](evidence/burst-live-s050-run3-2026-10-04.txt) ([json](evidence/burst-live-s050-run3-2026-10-04.json), [metrics](evidence/metrics-after-s050-run3.prom)) · [scale 1.0 run 2](evidence/burst-live-s100-run2-2026-10-04.txt) ([json](evidence/burst-live-s100-run2-2026-10-04.json), [metrics](evidence/metrics-after-s100-run2.prom)).
@@ -243,6 +244,18 @@ Same suite, same instance, only `SEAT_HINTS_MODE` changed. Run A is the baseline
 | Hint counters | none | 15,599 hits, 5,763 misses | 15,913 hits, 5,824 misses, 733 dropped as stale |
 
 **Result:** with the fix, hints on finished the suite 19 % faster than hints off (568 s against 704 s), the median latency fell by 35 % (4.0 s to 2.6 s), p99 by 19 % and the stampede throughput rose by a third (33 to 44 requests/s). Earlier unmodified runs of the same size took 650 s and 665 s, so the 5-8 % run-to-run spread is smaller than the gain. Every correctness check passed, including all 300 duplicate replays in scenario 3 and the metrics reconciliation. About 73 % of hint lookups were hits.
+
+**Full-size run with hints on.** The full suite (scale 1.0, 37,894 calls) ran once with hints on, on build `0b7ad62`: all 13 scenarios and every reconciliation check passed, zero 5xx, zero transport failures, no Hikari timeouts, no restart (uptime 1,688 s), and the breaker never opened (`/health/ready` stayed 200 on all 329 in-run probes). The `520` seen in the early full-size run did not recur. Artifacts: [txt](evidence/burst-live-s100-hints-2026-10-04.txt), [json](evidence/burst-live-s100-hints-2026-10-04.json), [metrics](evidence/metrics-after-s100-hints.prom).
+
+| | full size, hints off (run 2, `4e5f0d2`) | full size, hints on (`0b7ad62`) |
+|---|---|---|
+| Calls | 37,808 | 37,894 |
+| Total time | 1,227 s | **965 s** (21 % faster) |
+| Stampede (22,000 calls) | 638 s, 34 req/s | **468 s, 47 req/s** |
+| Overall p50 / p95 / p99 | 4.2 / 13.6 / 19.6 s | **2.0** / 13.8 / 20.3 s |
+| Hint lookups | none | 29,765 hits, 12,385 misses (71 % hit rate), 2,327 learned hints dropped as stale, 969 releases |
+
+The gain is in the median and the throughput; the tail (p95, p99) did not improve, because the slowest requests are the ones that still have to queue for the database. The two full-size runs were on adjacent builds that differ in the cache and the idempotency-order fix, and one run each, so the exact percentage is an estimate.
 
 **Caveats:** one run per condition, so the size of the gain is an estimate, not a precise figure; the free instance is shared hardware. `per_user_limit` declines fell from 719 (A) to 402 (B2) because requests doomed for two reasons now answer `seat_taken`; this is the documented precedence change, and the counters reconcile. The cache is exact only while one process releases seats (see the write-up).
 

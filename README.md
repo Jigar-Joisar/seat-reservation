@@ -20,7 +20,7 @@ Java 17 · Spring Boot 3.2 · plain JDBC · PostgreSQL in deployment (H2 locally
 | Recent logs (public, scrubbed) | `/ops/logs` ([what it exposes](#public-log-access)) |
 | Test evidence | [docs/LIVE-TEST-REPORT.md](docs/LIVE-TEST-REPORT.md) |
 
-The live service runs on Render's free tier: expect a cold start of up to a minute after 15 idle minutes, and roughly 25-45 requests/s of throughput.
+The live service runs on Render's free tier: expect a cold start of up to a minute after 15 idle minutes, and roughly 25-47 requests/s of throughput.
 
 Design write-up (atomic mechanism, locking, idempotency, holds, CAP, paging, AI usage): [WRITEUP.md](WRITEUP.md) · Full API guide: [docs/API.md](docs/API.md) · Live test report: [docs/LIVE-TEST-REPORT.md](docs/LIVE-TEST-REPORT.md)
 
@@ -35,10 +35,11 @@ Everything below was run against the live Render deployment (raw output, JSON re
 | Hot seat, 500 buyers | exactly one `201`, 499 `409` |
 | Parallel duplicates (150 users x 3 identical requests) | 150 created + 300 replays, no double charge |
 | Database outage (Postgres suspended about 4 min) | liveness `200` throughout, breaker opened in 8 s, 62 fast `503` + `Retry-After`, nothing booked, audit passed, self-recovery about 1 s after the database answered |
-| Seat-hint cache (hints on vs off, same suite) | 19 % faster (568 s vs 704 s), median latency 4.0 s to 2.6 s, every check passing |
+| Seat-hint cache, half size (hints on vs off, same suite) | 19 % faster (568 s vs 704 s), median latency 4.0 s to 2.6 s, every check passing |
+| Seat-hint cache, full size (37,894 calls) | all checks passed, no 5xx, 965 s vs 1,227 s without hints (21 % faster), stampede 34 to 47 req/s, median latency 4.2 s to 2.0 s; p99 unchanged (about 20 s) |
 | Automated tests | 69 (unit, integration, concurrency stress, contract) |
 
-Known limits, stated plainly: the hint cache is exact only for a single instance; the full-size suite and the outage probe were not repeated with the cache on; one request was lost between client and application in each of two early runs and the cause was never identified (details in the report).
+Known limits, stated plainly: the hint cache is exact only for a single instance; the outage probe was not repeated with the cache on; one request was lost between client and application in each of two early runs and the cause was never identified (details in the report).
 
 ---
 
@@ -209,7 +210,7 @@ In a stampede about 97 % of requests are `409 seat_taken`, and each used to cost
 * **It can only reject, never grant.** The database still makes every sale. An empty, evicted, expired, restarted or disabled cache just means the database decides, as it always did. A retry of a winning request still replays (`200`): the hint is read first, and the idempotency lookup still runs.
 * **Releases clear it.** Cancel and hold expiry remove their seats from the cache right after the transaction, and a hint is dropped if a release happened while it was being learned. Entries also expire after `SEAT_HINTS_TTL_SECONDS` (60) and the cache holds at most `SEAT_HINTS_MAX` (500,000).
 * **Kill switch:** `SEAT_HINTS_MODE=off` (no code change; the service restarts).
-* **Measured on Render + Postgres:** the half-size suite took 568 s with hints against 704 s without, with all checks passing ([report](docs/LIVE-TEST-REPORT.md#seat-hints-live-ab-on-render-postgres-scale-05)). One run per condition on shared free hardware, so treat the gain as an estimate.
+* **Measured on Render + Postgres:** the half-size suite took 568 s with hints against 704 s without, with all checks passing ([report](docs/LIVE-TEST-REPORT.md#seat-hints-live-ab-on-render-postgres-scale-05)). At full size it took 965 s against 1,227 s. The tail latency (p99, about 20 s) did not improve. One run per condition on shared free hardware, so treat the gains as estimates.
 * **Behaviour note:** a request that is doomed for several reasons may answer `seat_taken` before `per_user_limit` or `invalid_seat`. All are still 4xx declines.
 * **Single instance only.** A second instance (or the short overlap of two instances during a deploy) can release a seat without this instance's cache noticing, so a stale "taken" hint can live up to the TTL: an unfair `409`, never a double sale. If you run several instances, set `SEAT_HINTS_MODE=off` or replace the cache with a shared store (a Redis implementation of `cache/SeatHints` is the designed next step; see the [write-up](WRITEUP.md#seat-hints-performance-advisory-only)).
 
