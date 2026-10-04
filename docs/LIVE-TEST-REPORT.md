@@ -12,10 +12,10 @@ Evidence that the deployed service behaves correctly, gathered on 2026-10-03 aga
 
 ## Summary
 
-* **Correctness held in every run.** Across the runs in the table below (about 114,000 reserve/hold calls) no seat was ever sold twice, no user exceeded the limit, no idempotent retry booked twice, and every client-observed outcome equalled the server's Prometheus counters. **The application produced no 5xx in any load run**: the server-side 5xx series is empty after every run. The only 5xx-class responses were the deliberate `503` during the outage test, Render's `502`s during that outage, and one `520` in the full-size run (see below).
+* **Correctness held in every run.** Across the runs in the table below (about 152,000 reserve/hold calls) no seat was ever sold twice, no user exceeded the limit, no idempotent retry booked twice, and every client-observed outcome equalled the server's Prometheus counters. **The application produced no 5xx in any load run**: the server-side 5xx series is empty after every run. The only 5xx-class responses were the deliberate `503` during the outage test, Render's `502`s during that outage, and one `520` in the full-size run (see below).
 * **The scale-0.5 suite has passed cleanly twice** (run 2 and run 3, the latter on the current build with the circuit breaker live; it never opened under load). Run 2 (19,779 calls, 650 s, 98 checks, 0 failed), and run 3 (19,788 calls, 665 s, all checks). The first run had **one unexplained transport failure** (a request that got no response and timed out client-side), reported below as a failed run.
-* **The full-size suite (scale 1.0) was run once: 37,854 calls in 1,270 s (21 minutes), 98 checks passed and 1 failed.** The one failure is a single response with status `520` out of 6,000 in the sell-out scenario. The application recorded no 5xx and the sell-out itself was exact. It is reported as a failed run, not a pass.
-* **Two single requests (one in each of the two largest runs) were lost between the client and the application** and left no trace in the server's counters. The cause is not established.
+* **The full-size suite (scale 1.0) passed cleanly on run 2** (37,808 calls in 1,227 s, all checks, zero 5xx, zero transport failures) on the build with the Tomcat keep-alive fix. Run 1, on the older build, had one failure: a single `520` out of 6,000 sell-out responses. The application recorded no 5xx and the sell-out was exact; it is reported as a failed run, not a pass.
+* **Two single requests were lost between the client and the application** on the pre-fix build (one in the first scale-0.5 run, one `520` in the first full-size run). Neither has recurred in the three large runs since the keep-alive change (~77,000 calls). The cause is still not established, but the evidence is now consistent with a proxy/keep-alive race that the Tomcat tuning eliminated.
 * **A database outage is survived without data damage, and the corrected build is verified live.** In run 4 liveness stayed `200`, the breaker opened within 8 s, 62 reservations failed fast with `503` + `Retry-After` and none slower than 0.4 s, nothing was booked, the audit passed, and the service recovered by itself. The only imperfection was one `500` on a request already inside its transaction when the database vanished; that exception is now also mapped to `503`. See *Database outage test, run 4*.
 * **Throughput of the free instance is about 25-35 requests/s.**
 
@@ -29,9 +29,10 @@ Evidence that the deployed service behaves correctly, gathered on 2026-10-03 aga
 | 2026-10-03 20:57 IST | 0.5, scenario 7 only | 300 s | 601 | 95 s | p50 4.2 / p99 16.7 s | PASS | rerun of the failed scenario in isolation (terminal output only) |
 | 2026-10-03 21:01 IST | 0.5 | 300 s | 19,779 | 650 s | p50 3.6 / p99 20.8 s | PASS | **the reference run**; details below |
 | 2026-10-04 15:12 IST | 0.5 | 300 s | 19,788 | 665 s | p50 3.8 / p99 19.7 s | PASS | build `4e5f0d2`: circuit breaker, keep-alive tuning and scheduler fix live; breaker never opened, no lost request |
+| 2026-10-04 15:38 IST | 1.0 (full size), run 2 | 300 s | 37,808 | 1,227 s | p50 4.2 / p99 19.6 s | PASS | build `4e5f0d2`: keep-alive tuning live; all checks, zero 5xx, zero transport failures, breaker never opened |
 | 2026-10-03 21:38 IST | 1.0 (full size) | 300 s | 37,854 | 1,270 s | p50 3.9 / p99 21.1 s | **FAIL** | one `520` response in scenario 6; server-side clean, see below |
 
-Artifacts: [scale 0.2, 8 s TTL](evidence/burst-live-2026-10-03.txt) ([json](evidence/burst-live-2026-10-03.json), [metrics](evidence/metrics-live-after-burst.prom)) · [scale 0.15](evidence/burst-live-s015-2026-10-03.txt) · [scale 0.5 run 1, failed](evidence/burst-live-s050-run1-FAILED-2026-10-03.txt) ([metrics](evidence/metrics-after-s050-run1.prom)) · [scale 0.5 run 2](evidence/burst-live-s050-run2-2026-10-03.txt) ([json](evidence/burst-live-s050-run2-2026-10-03.json), [metrics](evidence/metrics-after-s050-run2.prom)) · [scale 1.0, failed](evidence/burst-live-s100-FAILED-2026-10-03.txt) ([json](evidence/burst-live-s100-FAILED-2026-10-03.json), [metrics](evidence/metrics-after-s100.prom)) · [scale 0.5 run 3](evidence/burst-live-s050-run3-2026-10-04.txt) ([json](evidence/burst-live-s050-run3-2026-10-04.json), [metrics](evidence/metrics-after-s050-run3.prom)).
+Artifacts: [scale 0.2, 8 s TTL](evidence/burst-live-2026-10-03.txt) ([json](evidence/burst-live-2026-10-03.json), [metrics](evidence/metrics-live-after-burst.prom)) · [scale 0.15](evidence/burst-live-s015-2026-10-03.txt) · [scale 0.5 run 1, failed](evidence/burst-live-s050-run1-FAILED-2026-10-03.txt) ([metrics](evidence/metrics-after-s050-run1.prom)) · [scale 0.5 run 2](evidence/burst-live-s050-run2-2026-10-03.txt) ([json](evidence/burst-live-s050-run2-2026-10-03.json), [metrics](evidence/metrics-after-s050-run2.prom)) · [scale 1.0, failed](evidence/burst-live-s100-FAILED-2026-10-03.txt) ([json](evidence/burst-live-s100-FAILED-2026-10-03.json), [metrics](evidence/metrics-after-s100.prom)) · [scale 0.5 run 3](evidence/burst-live-s050-run3-2026-10-04.txt) ([json](evidence/burst-live-s050-run3-2026-10-04.json), [metrics](evidence/metrics-after-s050-run3.prom)) · [scale 1.0 run 2](evidence/burst-live-s100-run2-2026-10-04.txt) ([json](evidence/burst-live-s100-run2-2026-10-04.json), [metrics](evidence/metrics-after-s100-run2.prom)).
 
 ## Reference run: scale 0.5, run 2
 
@@ -107,7 +108,11 @@ What the evidence shows:
 
 What is **not** known: whether the request never reached the application (for example a keep-alive connection silently dropped by Render's edge, so the read waits until the timeout) or stalled inside it. The no-held-connection evidence argues against a database stall, but this was not proven. The burst client now records the exception type, elapsed time and connection idle time for any transport failure, so a recurrence will identify itself. One failure in two full 0.5 runs is reported as it happened; the problem is neither declared fixed nor reproduced.
 
-## Full-size run (scale 1.0)
+## Full-size run 2 (scale 1.0, the clean run)
+
+Ran on build `4e5f0d2` (Tomcat keep-alive 300 s, unlimited requests per connection). 37,808 calls in 1,227 s: every scenario passed, every counter reconciled, zero 5xx client-side and server-side, zero transport failures, the breaker never opened, and the sell-out was again exact (500/500). The single `520` of run 1 did not recur. The honest reading: the keep-alive change is *consistent with* the lost-request fix but not proven - the failure was rare (2 in ~77,000 calls) and its cause was never identified. Artifacts: [txt](evidence/burst-live-s100-run2-2026-10-04.txt), [json](evidence/burst-live-s100-run2-2026-10-04.json), [metrics](evidence/metrics-after-s100-run2.prom).
+
+## Full-size run 1 (scale 1.0, failed)
 
 37,854 reserve/hold calls in 1270 s (21:38:09-21:59:19 IST), single process, no other traffic. **98 checks passed, 1 failed.**
 
@@ -225,7 +230,7 @@ The platform offers no public log URL, so the service exposes `GET /ops/logs` (R
 
 ## Limits of this evidence (stated plainly)
 
-* **No clean full-size run.** The default scale (1.0, 37,854 calls, 21 minutes) was run once and ended with one `520` response (above). It has not been repeated.
+* **Full-size is now verified:** scale 1.0 run 2 passed cleanly (see above). The earlier `520` did not recur.
 * **Hold expiry live.** It was exercised once, at scale 0.2 with an 8 s TTL, where all 23 timed confirms arrived after expiry (0 won). That verifies that expired holds stay expired and nothing is resurrected, but not a confirm winning the race on the live service; that case is covered by the local short-TTL runs and `ConcurrencyStressTest`. The scale-0.5 runs used the production TTL of 300 s, so scenario 10 was skipped.
 * **Two unexplained lost requests**: one transport failure in the first scale-0.5 run and one `520` in the full-size run, both described above.
 * **Outage test:** three counted runs. Run 4 verified the corrected build end to end. Render's event log was not captured; suspend/resume times are inferred from server log lines and the user's stamps.

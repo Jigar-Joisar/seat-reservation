@@ -109,10 +109,11 @@ I used an AI coding agent (Devin) heavily, working interactively in my terminal.
 * An idempotency gap (the same key reused on a different show returned the first show's reservation) survived the first design and was found while the burst suite was being hardened; it is now fixed with a regression test.
 
 **What is verified by running, and what is not:**
-* Verified: 53 automated tests, two full local burst runs (default and short hold TTL), a hard-crash restart test, seven live burst runs against the Render deployment (about 94,000 calls, no 5xx from the application, every counter reconciled), including one full-size run, and a live database-outage probe with a passing audit (see the live report).
+* Verified: 53 automated tests, two full local burst runs (default and short hold TTL), a hard-crash restart test, eight live burst runs against the Render deployment (about 152,000 calls, no 5xx from the application, every counter reconciled), including one full-size run, and a live database-outage probe with a passing audit (see the live report).
 * Verified on the current build: a third scale-0.5 burst (19,788 calls) passed all checks with the circuit breaker live - it never opened under load - and no request was lost.
-* Reported, not hidden: two live runs each lost one request between the client and the application: the first scale-0.5 run (a request that timed out) and the full-size run (a single `520` in the sell-out scenario, which failed that run's `zero 5xx` check). Neither left a trace in the server's counters or state, no application 5xx was recorded, and the cause is undetermined (a keep-alive race with Render's proxy is a candidate, untested). The full-size suite has therefore been run once and did not pass cleanly.
-* Not verified: a clean full-size run (scale 1.0) on the free instance, a confirm winning the expiry race on the live service, a partition under heavy load, and building the Docker image locally (Docker was not available; Render builds the image on every deploy).
+* Verified on the current build: the full-size suite (scale 1.0) passed cleanly - 37,808 calls, all checks, zero 5xx, zero transport failures - after the Tomcat keep-alive fix (300 s timeout, unlimited requests per connection).
+* Reported, not hidden: two live runs on the pre-fix build each lost one request between the client and the application (a client-side timeout at scale 0.5; a single `520` in the first full-size run). Neither left a trace in server counters or state, and the failure has not recurred in three large runs since the keep-alive change - consistent with a proxy/keep-alive race, but the cause was never identified directly.
+* Not verified: a confirm winning the expiry race on the live service, a partition under heavy load, and building the Docker image locally (Docker was not available; Render builds the image on every deploy).
 
 ## Next
 
